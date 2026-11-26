@@ -63,76 +63,106 @@ Sistema de escritorio desarrollado en **Python** con interfaz gráfica en **Tkin
 
 ---
 
-## 🛠️ Instalación y Ejecución
+## Instalación y ejecución
 
-### Requisitos previos
-- **Python 3.10 o superior** (probado en Python 3.13).
-- **Pillow** (opcional, para visualización de fotografías en miniatura).
-- **Flask** (solo si usarás la versión web).
+Guía para Windows y PowerShell. La aplicación de escritorio y la versión web usan MariaDB como base principal. Si MariaDB no está disponible, la aplicación se detiene; `data/tienda_mt.json` se conserva solo como respaldo auxiliar.
 
-### Pasos para iniciar
+### Requisitos
 
-1. Clona o descarga la carpeta del proyecto:
-   ```bash
-   cd mt_tienda_gui
-   ```
+- Windows 10 u 11.
+- Python 3.10 o superior.
+- MariaDB Server instalado y en ejecución.
 
-2. (Recomendado) Instalar dependencias para soporte de imágenes:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Las dependencias (Flask, PyMySQL, cryptography y Pillow) se instalan desde `requirements.txt`.
 
-3. Ejecutar la aplicación de escritorio:
-   ```bash
-   python app.py
-   ```
+### 1. Instalar dependencias de Python
 
-4. (Opcional) Ejecutar la versión web y abrir http://localhost:
-   ```bash
-   python web_app.py          # solo tu equipo
-   python web_app.py --lan    # visible en tu red local
-   ```
-   Escritorio y web usan MariaDB como fuente principal. `data/tienda_mt.json` se conserva únicamente como respaldo; si MariaDB no está disponible, la aplicación se detiene y no cambia a JSON.
-
-### Configurar MariaDB (requerido)
-
-1. Con MariaDB iniciado, abre el monitor usando la ruta instalada en tu equipo:
-   ```powershell
-   & "C:\Program Files\MariaDB 13.1\bin\mysql.exe" -u root -p
-   ```
-2. Dentro del monitor crea la base de datos si hace falta y crea un usuario dedicado:
-   ```sql
-   CREATE DATABASE IF NOT EXISTS tienda_mt CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   CREATE USER 'mt_app'@'localhost' IDENTIFIED BY 'PON_AQUI_UNA_CLAVE_LARGA';
-   GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, REFERENCES ON tienda_mt.* TO 'mt_app'@'localhost';
-   ```
-   No ejecutes el esquema a mano: al iniciar, la aplicación crea/actualiza las tablas. Para ese paso automático, el usuario necesita permisos `CREATE` y `ALTER`.
-3. Para ejecutar la tienda, configura las variables en la misma ventana de PowerShell con esa contraseña:
-   ```powershell
-   $env:DB_HOST = "localhost"
-   $env:DB_PORT = "3306"
-   $env:DB_USER = "mt_app"
-   $env:DB_PASSWORD = "<contraseña-configurada-para-mt_app>"
-   $env:DB_NAME = "tienda_mt"
-   python web_app.py
-   ```
-
-   En el primer arranque, si la tabla `productos` está vacía, la aplicación migra a MariaDB el catálogo, las cuentas y los pedidos del JSON existente. Después MariaDB será la fuente de lectura y escritura; el JSON solo se actualiza como copia auxiliar. Si la conexión o el esquema falla, la aplicación se detiene con un error y no carga ese respaldo.
-
-Atajos de la app de escritorio: `Ctrl+1…4` cambia de pestaña, `F5` actualiza, `Supr` quita del carrito.
-
-### HTTPS y protección de cuentas
-
-HTTPS se prepara automáticamente en el primer inicio. Si no indicas certificado, la tienda genera uno local para `localhost` y `127.0.0.1` en `data/tls/`; no configures `MT_SSL_CERT` ni `MT_SSL_KEY` para este modo. Inicia con:
+Abre PowerShell y entra a la carpeta del proyecto:
 
 ```powershell
-$env:MT_SELLER_PASSWORD = "usa-una-frase-larga-y-unica"
-python web_app.py
+Set-Location "C:\Users\Camar\Downloads\mt_tienda_gui"
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+py -m pip install --upgrade pip
+py -m pip install -r requirements.txt
 ```
 
-Abre `https://127.0.0.1` o `https://localhost`. El navegador mostrará una advertencia la primera vez porque el certificado local no pertenece a una autoridad pública; es esperable para uso local. Si luego cuentas con un certificado real, puedes indicar sus rutas con `MT_SSL_CERT` y `MT_SSL_KEY`; si las rutas no existen, la aplicación vuelve automáticamente al certificado local. Para usar `--lan`, configura un certificado emitido para el nombre o IP con que se conectarán otros dispositivos. Si TLS termina en un proxy inverso de confianza, configura también `MT_TRUSTED_PROXY=1`.
+Si PowerShell impide activar el entorno virtual, ejecuta `\.venv\Scripts\python.exe -m pip install -r requirements.txt` y usa ese Python para los siguientes pasos.
 
-Las contraseñas nuevas deben tener de 12 a 128 caracteres. El vendedor inicial solo se crea si `MT_SELLER_PASSWORD` está configurada con una contraseña de esa longitud; los compradores pueden registrarse desde la tienda. Para reemplazar las contraseñas de demostración de cuentas existentes, configura `MT_SELLER_PASSWORD` y/o `MT_BUYER_PASSWORD` con contraseñas nuevas de al menos 12 caracteres y reinicia la aplicación. Los intentos fallidos de inicio de sesión se bloquean durante 15 minutos después de cinco fallos para la misma cuenta y dirección IP.
+### 2. Crear la base de datos y el usuario de la tienda
+
+Inicia el servicio MariaDB desde **Servicios** de Windows. Abre el cliente SQL (la ruta puede variar según la versión instalada):
+
+```powershell
+& "C:\Program Files\MariaDB 13.1\bin\mysql.exe" -u root -p
+```
+
+Escribe la contraseña de `root`. En el prompt de MariaDB crea la base y un usuario dedicado. Cambia `PON_UNA_CLAVE_LARGA` por una contraseña propia y consérvala:
+
+```sql
+CREATE DATABASE IF NOT EXISTS tienda_mt
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'mt_app'@'localhost'
+  IDENTIFIED BY 'PON_UNA_CLAVE_LARGA';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, REFERENCES
+  ON tienda_mt.* TO 'mt_app'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+La aplicación crea y actualiza las tablas automáticamente al iniciar, usando `database_schema.sql`. Para eso `mt_app` requiere los permisos `CREATE` y `ALTER`; no necesitas ejecutar el archivo SQL manualmente.
+
+### 3. Configurar la conexión y la cuenta vendedora
+
+En la misma ventana de PowerShell donde ejecutarás la tienda, establece la conexión. Reemplaza las contraseñas de ejemplo por las que elegiste:
+
+```powershell
+$env:DB_HOST = "localhost"
+$env:DB_PORT = "3306"
+$env:DB_USER = "mt_app"
+$env:DB_PASSWORD = "PON_UNA_CLAVE_LARGA"
+$env:DB_NAME = "tienda_mt"
+$env:MT_SELLER_PASSWORD = "frase-segura-de-al-menos-12-caracteres"
+```
+
+Si aún no hay cuentas, se crea el vendedor inicial con usuario `vendedor@mtcom1.mx` y la contraseña de `MT_SELLER_PASSWORD`. Los compradores pueden registrarse desde la página de acceso.
+
+En el primer inicio, si MariaDB no tiene productos, la aplicación importa productos, usuarios y pedidos de `data/tienda_mt.json` cuando ese archivo contiene datos. Si la tabla `productos` ya tiene registros, MariaDB se conserva y no se mezcla con el JSON. Después MariaDB es la única fuente de lectura y escritura; el JSON queda como respaldo auxiliar.
+
+### 4. Iniciar la tienda
+
+Para la versión web local, usa un puerto alto para no requerir permisos de administrador:
+
+```powershell
+$env:MT_PORT = "8443"
+py web_app.py
+```
+
+Abre `https://127.0.0.1:8443` o `https://localhost:8443`. En el primer inicio se genera un certificado local en `data/tls/`; el navegador advertirá que es autofirmado. Para usar un certificado propio, configura `MT_SSL_CERT` y `MT_SSL_KEY` con sus rutas antes de iniciar.
+
+Para iniciar la aplicación de escritorio, desde la misma ventana y con las variables `DB_*` configuradas ejecuta:
+
+```powershell
+py app.py
+```
+
+Atajos de escritorio: `Ctrl+1…4` cambia de pestaña, `F5` actualiza y `Supr` quita un artículo del carrito.
+
+Para que otros equipos de tu red accedan, inicia con `py web_app.py --lan` y configura un certificado válido para el nombre o la IP de acceso. El certificado local generado para `localhost` es solo para este equipo.
+
+### Cuentas y sesiones
+
+Comprador y vendedor pueden iniciar sesión en pestañas distintas del mismo navegador. El catálogo se puede consultar sin iniciar sesión; agregar productos al carrito y comprar requiere una cuenta de comprador. La administración requiere una cuenta de vendedor.
+
+Las contraseñas nuevas deben tener entre 12 y 128 caracteres. Cinco intentos fallidos para la misma cuenta e IP bloquean temporalmente el acceso durante 15 minutos. Para actualizar la contraseña de una cuenta semilla existente, configura `MT_SELLER_PASSWORD` o `MT_BUYER_PASSWORD` con una nueva contraseña de al menos 12 caracteres y reinicia la aplicación.
+
+### Solución rápida de problemas
+
+- `Access denied for user`: revisa `DB_USER`, `DB_PASSWORD` y que el usuario tenga permisos sobre `tienda_mt`.
+- No conecta a `localhost:3306`: confirma que MariaDB esté iniciado y que `DB_PORT` sea correcto.
+- No se crean tablas: revisa que `mt_app` tenga permisos `CREATE` y `ALTER`; el esquema se aplica automáticamente al iniciar.
+- El navegador advierte sobre HTTPS: es normal con el certificado local autofirmado. Usa `https://localhost:8443` o `https://127.0.0.1:8443`.
+- Los datos no se guardan: confirma que ejecutas la app desde la misma PowerShell donde definiste las variables `DB_*` y revisa `logs/actividad.log`.
 
 ---
 

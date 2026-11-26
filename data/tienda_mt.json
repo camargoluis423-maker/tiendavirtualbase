@@ -197,6 +197,14 @@
       "perfil": "General",
       "password_hash": "scrypt:32768:8:1$EwKMiwEK9O8ur84f$32f700848b094ed9741d3054a7ed14e8d345605896482bd56e6c8f79fffd3f14fdae308e32bd74902c49a64ed8abcc15f026ea2562ef939865b4a8bb0af34809",
       "puntos_lealtad": 812.0
+    },
+    {
+      "usuario": "comprador@mtcom1.mx",
+      "alias": "comprador",
+      "nombre": "joaquin",
+      "rol": "comprador",
+      "perfil": "General",
+      "password_hash": "scrypt:32768:8:1$aPThpgEmopEg4Cdd$73d77b67d714bd1321716a832b179fa194b06ab92acfc97e89850c77a100f921f4b8439238d31e43aa9037ef68cddef1fd8fb4bc0ff62bf20873bef140b23bf1"
     }
   ],
   "pedidos": [
@@ -229,14 +237,15 @@
           "fecha": "2026-11-26 01:59"
         }
       ],
-      "stock_reintegrado": false,
+      "stock_reintegrado": 0,
       "datos_pago": {
         "ultimos4": "2343",
         "titular": "Joaquin castillo gomez",
         "red": "Visa"
       },
       "usuario": "paco123@gmail.com",
-      "puntos_ganados": 812.0
+      "puntos_ganados": 812.0,
+      "datos_pago_json": "{\"ultimos4\": \"2343\", \"titular\": \"Joaquin castillo gomez\", \"red\": \"Visa\"}"
     }
   ]
 }

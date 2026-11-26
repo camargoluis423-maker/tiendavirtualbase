@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     rol ENUM('comprador', 'vendedor') NOT NULL DEFAULT 'comprador',
     perfil VARCHAR(50) NOT NULL DEFAULT 'General',
     password_hash VARCHAR(255) NOT NULL,
+    payload_json LONGTEXT DEFAULT NULL,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -36,6 +37,7 @@ CREATE TABLE IF NOT EXISTS productos (
     stock INT NOT NULL DEFAULT 0,
     foto VARCHAR(255) DEFAULT '',
     especs VARCHAR(255) DEFAULT '',
+    payload_json LONGTEXT DEFAULT NULL,
     actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -54,6 +56,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
     estado ENUM('Pendiente', 'Preparando', 'Enviado', 'Entregado', 'Cancelado') NOT NULL DEFAULT 'Pendiente',
     stock_reintegrado BOOLEAN NOT NULL DEFAULT FALSE,
     datos_pago_json TEXT DEFAULT NULL,
+    payload_json LONGTEXT DEFAULT NULL,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -67,8 +70,15 @@ CREATE TABLE IF NOT EXISTS pedido_items (
     cantidad INT NOT NULL,
     precio DECIMAL(10,2) NOT NULL,
     importe DECIMAL(10,2) NOT NULL,
+    payload_json LONGTEXT DEFAULT NULL,
     FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- Conserva campos propios de la aplicación que no son columnas relacionales.
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS payload_json LONGTEXT DEFAULT NULL;
+ALTER TABLE productos ADD COLUMN IF NOT EXISTS payload_json LONGTEXT DEFAULT NULL;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS payload_json LONGTEXT DEFAULT NULL;
+ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS payload_json LONGTEXT DEFAULT NULL;
 
 -- ---------------------------------------------------------------------
 -- Datos Semilla Iniciales (Categorías)

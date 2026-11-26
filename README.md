@@ -36,7 +36,7 @@ Sistema de escritorio desarrollado en **Python** con interfaz gráfica en **Tkin
    - Generación de **Tickets / Comprobantes de Venta** en `.txt`.
 
 5. **Persistencia y Auditoría Segura:**
-   - Base de datos local en JSON (`data/tienda_mt.json`) con escritura atómica y respaldo automático `.bak`.
+   - MariaDB como base principal; respaldo auxiliar local JSON con copia `.bak`.
    - Bitácora completa de eventos y transacciones en `logs/actividad.log`.
 
 ---
@@ -58,7 +58,7 @@ Sistema de escritorio desarrollado en **Python** con interfaz gráfica en **Tkin
 - Se muestra el perfil con su descuento en el selector (antes la lista de etiquetas se calculaba pero no se usaba).
 - Importes redondeados a centavos; IVA y porcentajes tomados de `config.py` en vez de estar escritos a mano.
 - Al reactivar un pedido cancelado sin existencias suficientes se conserva el estado cancelado y el selector vuelve a su valor.
-- Lectura de datos más robusta: si el JSON y su `.bak` están dañados, el archivo se guarda como `.corrupto` y la app arranca con el catálogo base.
+- La aplicación requiere MariaDB para leer y guardar; el JSON se conserva solo como respaldo y no se usa como sustituto si falla la conexión.
 - Web: ya no se expone `data/` completo (JSON y `.bak`) como archivos estáticos; solo `/fotos/`. Se eliminó `/api/pedidos` (datos de clientes sin autenticación), se agregó protección CSRF, clave de sesión estable y cada navegador solo ve sus propios pedidos.
 
 ---
@@ -87,12 +87,41 @@ Sistema de escritorio desarrollado en **Python** con interfaz gráfica en **Tkin
    python app.py
    ```
 
-4. (Opcional) Ejecutar la versión web y abrir http://localhost:5000:
+4. (Opcional) Ejecutar la versión web y abrir http://localhost:
    ```bash
    python web_app.py          # solo tu equipo
    python web_app.py --lan    # visible en tu red local
    ```
-   Escritorio y web comparten `data/tienda_mt.json`: lo que cambies en una se ve en la otra.
+   Escritorio y web usan MariaDB como fuente principal. `data/tienda_mt.json` se conserva únicamente como respaldo; si MariaDB no está disponible, la aplicación se detiene y no cambia a JSON.
+
+### Preparar MariaDB (requerido)
+
+1. Con MariaDB iniciado, abre el monitor usando la ruta instalada en tu equipo:
+   ```powershell
+   & "C:\Program Files\MariaDB 13.1\bin\mysql.exe" -u root -p
+   ```
+2. Dentro del monitor crea las tablas del proyecto y verifica que aparezcan:
+   ```sql
+   source C:/Users/Camar/Downloads/mt_tienda_gui/database_schema.sql;
+   SHOW TABLES;
+   SELECT COUNT(*) FROM productos;
+   ```
+   Crea un usuario dedicado para la aplicación (elige una contraseña propia):
+   ```sql
+   CREATE USER 'mt_app'@'localhost' IDENTIFIED BY 'PON_AQUI_UNA_CLAVE_LARGA';
+   GRANT SELECT, INSERT, UPDATE, DELETE ON tienda_mt.* TO 'mt_app'@'localhost';
+   ```
+3. Para ejecutar la tienda, configura las variables en la misma ventana de PowerShell con esa contraseña:
+   ```powershell
+   $env:DB_HOST = "localhost"
+   $env:DB_PORT = "3306"
+   $env:DB_USER = "mt_app"
+   $env:DB_PASSWORD = "<contraseña-configurada-para-mt_app>"
+   $env:DB_NAME = "tienda_mt"
+   python web_app.py
+   ```
+
+   En el primer arranque, si la tabla `productos` está vacía, la aplicación migra a MariaDB el catálogo, las cuentas y los pedidos del JSON existente. Después MariaDB será la fuente de lectura y escritura; el JSON solo se actualiza como copia auxiliar. Si la conexión o el esquema falla, la aplicación se detiene con un error y no carga ese respaldo.
 
 Atajos de la app de escritorio: `Ctrl+1…4` cambia de pestaña, `F5` actualiza, `Supr` quita del carrito.
 
@@ -121,13 +150,13 @@ mt_tienda_gui/
 ├── web_app.py            # Versión web (Flask)
 ├── logica.py             # Reglas de negocio: totales, pedidos, tickets (compartido)
 ├── config.py             # Parámetros, perfiles, IVA, colores y estilos
-├── storage.py            # Persistencia segura JSON y gestión de fotos
+├── storage.py            # Persistencia MariaDB, respaldo JSON y gestión de fotos
 ├── logger.py             # Registro de auditoría cronológica
 ├── templates/            # Plantillas web (base, index, producto, carrito, pedido, error)
 ├── static/style.css      # Estilos de la versión web
 ├── requirements.txt
 ├── data/
-│   ├── tienda_mt.json    # Base de datos JSON de productos y pedidos
+│   ├── tienda_mt.json    # Respaldo auxiliar; MariaDB es la fuente principal
 │   └── fotos/            # Imágenes de los artículos
 ├── exports/              # Cotizaciones y tickets .txt (se crea sola)
 └── logs/actividad.log    # Historial de operaciones

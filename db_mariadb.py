@@ -1,10 +1,7 @@
 """Módulo de Conexión y Persistencia con MariaDB / MySQL para M&T · COM-1.
 
-Características:
-1. Conexión automática: Si MariaDB está encendido y accesible, se conecta y usa la BD.
-2. Reconexión automática: Si la conexión cae por timeout o reinicio del servicio, se restablece sola.
-3. Fallback tolerante: Si MariaDB no está instalado o está apagado, conmuta automáticamente
-   al almacenamiento JSON local sin interrumpir la tienda.
+MariaDB es la base principal obligatoria. Si no está disponible, las operaciones
+fallan en lugar de cambiar silenciosamente a un almacén local.
 """
 import json
 import os
@@ -31,6 +28,19 @@ except ImportError:
         _driver = None
 
 
+def _leer_payload(fila: dict) -> dict:
+    """Restaura campos completos guardados junto a las columnas indexables."""
+    payload = fila.pop("payload_json", None)
+    try:
+        datos = json.loads(payload) if payload else {}
+    except (TypeError, ValueError):
+        datos = {}
+    if not isinstance(datos, dict):
+        datos = {}
+    datos.update(fila)
+    return datos
+
+
 class MariaDBManager:
     def __init__(self):
         self.conexion = None
@@ -55,12 +65,24 @@ class MariaDBManager:
                     connect_timeout=3,
                     cursorclass=pymysql.cursors.DictCursor
                 )
+            elif _driver == "mysql.connector":
+                self.conexion = pymysql.connect(
+                    host=DB_HOST,
+                    port=DB_PORT,
+                    user=DB_USER,
+                    password=DB_PASSWORD,
+                    database=DB_NAME,
+                    charset="utf8mb4",
+                    autocommit=True,
+                    connection_timeout=3,
+                )
             self._disponible = True
             registrar_evento("INFO", f"[MariaDB] Conexión establecida con {DB_HOST}:{DB_PORT}/{DB_NAME}")
             return True
         except Exception as e:
             self._disponible = False
             self.conexion = None
+            registrar_evento("ERROR", f"[MariaDB] No se pudo conectar a {DB_HOST}:{DB_PORT}/{DB_NAME}: {e}")
             return False
 
     def asegurar_conexion(self) -> bool:
@@ -82,13 +104,18 @@ class MariaDBManager:
     def activa(self) -> bool:
         return self.asegurar_conexion()
 
+    def _cursor(self):
+        if _driver == "mysql.connector":
+            return self.conexion.cursor(dictionary=True)
+        return self.conexion.cursor()
+
     def inicializar_tablas_desde_json(self, ruta_json: str):
         """Migra automáticamente el catálogo JSON a MariaDB si la BD está vacía."""
         if not self.asegurar_conexion():
             return False
 
         try:
-            with self.conexion.cursor() as cur:
+            with self._cursor() as cur:
                 # Comprobar si hay productos
                 cur.execute("SELECT COUNT(*) as total FROM productos")
                 row = cur.fetchone()
@@ -103,17 +130,29 @@ class MariaDBManager:
                     # Migrar usuarios
                     for u in datos.get("usuarios", []):
                         cur.execute("""
-                            INSERT IGNORE INTO usuarios (usuario, alias, nombre, rol, perfil, password_hash)
-                            VALUES (%s, %s, %s, %s, %s, %s)
-                        """, (u["usuario"], u.get("alias", u["usuario"]), u["nombre"], u["rol"], u.get("perfil", "General"), u["password_hash"]))
+                            INSERT IGNORE INTO usuarios (usuario, alias, nombre, rol, perfil, password_hash, payload_json)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, (u["usuario"], u.get("alias", u["usuario"]), u["nombre"], u["rol"], u.get("perfil", "General"), u["password_hash"], json.dumps(u, ensure_ascii=False)))
 
                     # Migrar productos
                     for p in datos.get("productos", []):
                         cur.execute("""
-                            INSERT INTO productos (id, nombre, categoria, precio, stock, foto, especs)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
-                            ON DUPLICATE KEY UPDATE stock=VALUES(stock), precio=VALUES(precio), foto=VALUES(foto)
-                        """, (p["id"], p["nombre"], p["categoria"], p["precio"], p["stock"], p.get("foto", ""), p.get("especs", "")))
+                            INSERT INTO productos (id, nombre, categoria, precio, stock, foto, especs, payload_json)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            ON DUPLICATE KEY UPDATE stock=VALUES(stock), precio=VALUES(precio), foto=VALUES(foto), payload_json=VALUES(payload_json)
+                        """, (p["id"], p["nombre"], p["categoria"], p["precio"], p["stock"], p.get("foto", ""), p.get("especs", ""), json.dumps(p, ensure_ascii=False)))
+
+                    for ped in datos.get("pedidos", []):
+                        cur.execute("""
+                            INSERT INTO pedidos (id, fecha, cliente, usuario, perfil, pago, subtotal, descuento, iva, total, estado, stock_reintegrado, datos_pago_json, payload_json)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            ON DUPLICATE KEY UPDATE payload_json=VALUES(payload_json)
+                        """, (ped["id"], ped.get("fecha", datetime.now().strftime("%Y-%m-%d %H:%M")), ped.get("cliente", ""), ped.get("usuario"), ped.get("perfil", "General"), ped.get("pago", "Tarjeta"), ped.get("subtotal", 0), ped.get("descuento", 0), ped.get("iva", 0), ped.get("total", 0), ped.get("estado", "Pendiente"), ped.get("stock_reintegrado", False), json.dumps(ped.get("datos_pago", {}), ensure_ascii=False), json.dumps(ped, ensure_ascii=False)))
+                        for item in ped.get("items", []):
+                            cur.execute("""
+                                INSERT INTO pedido_items (pedido_id, producto_id, nombre, categoria, cantidad, precio, importe, payload_json)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            """, (ped["id"], item["producto_id"], item["nombre"], item.get("categoria", "Equipo"), item["cantidad"], item["precio"], item["importe"], json.dumps(item, ensure_ascii=False)))
 
                     registrar_evento("INFO", "[MariaDB] Datos iniciales sincronizados automáticamente desde JSON.")
                     return True
@@ -127,23 +166,23 @@ class MariaDBManager:
             return None
 
         try:
-            with self.conexion.cursor() as cur:
+            with self._cursor() as cur:
                 # Productos
-                cur.execute("SELECT id, nombre, categoria, CAST(precio AS FLOAT) as precio, stock, foto, especs FROM productos ORDER BY id ASC")
-                prods = cur.fetchall()
+                cur.execute("SELECT id, nombre, categoria, CAST(precio AS FLOAT) as precio, stock, foto, especs, payload_json FROM productos ORDER BY id ASC")
+                prods = [_leer_payload(p) for p in cur.fetchall()]
 
                 # Usuarios
-                cur.execute("SELECT usuario, alias, nombre, rol, perfil, password_hash FROM usuarios")
-                users = cur.fetchall()
+                cur.execute("SELECT usuario, alias, nombre, rol, perfil, password_hash, payload_json FROM usuarios")
+                users = [_leer_payload(u) for u in cur.fetchall()]
 
                 # Pedidos
-                cur.execute("SELECT id, DATE_FORMAT(fecha, '%Y-%m-%d %H:%i') as fecha, cliente, usuario, perfil, pago, CAST(subtotal AS FLOAT) as subtotal, CAST(descuento AS FLOAT) as descuento, CAST(iva AS FLOAT) as iva, CAST(total AS FLOAT) as total, estado, stock_reintegrado, datos_pago_json FROM pedidos ORDER BY id DESC")
-                pedidos = cur.fetchall()
+                cur.execute("SELECT id, DATE_FORMAT(fecha, '%Y-%m-%d %H:%i') as fecha, cliente, usuario, perfil, pago, CAST(subtotal AS FLOAT) as subtotal, CAST(descuento AS FLOAT) as descuento, CAST(iva AS FLOAT) as iva, CAST(total AS FLOAT) as total, estado, stock_reintegrado, datos_pago_json, payload_json FROM pedidos ORDER BY id DESC")
+                pedidos = [_leer_payload(p) for p in cur.fetchall()]
 
                 # Cargar items de cada pedido
                 for ped in pedidos:
-                    cur.execute("SELECT producto_id, nombre, categoria, cantidad, CAST(precio AS FLOAT) as precio, CAST(importe AS FLOAT) as importe FROM pedido_items WHERE pedido_id = %s", (ped["id"],))
-                    ped["items"] = cur.fetchall()
+                    cur.execute("SELECT producto_id, nombre, categoria, cantidad, CAST(precio AS FLOAT) as precio, CAST(importe AS FLOAT) as importe, payload_json FROM pedido_items WHERE pedido_id = %s", (ped["id"],))
+                    ped["items"] = [_leer_payload(item) for item in cur.fetchall()]
                     if ped.get("datos_pago_json"):
                         try:
                             ped["datos_pago"] = json.loads(ped["datos_pago_json"])

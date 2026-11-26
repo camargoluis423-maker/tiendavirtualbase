@@ -203,6 +203,20 @@ h1,h2,h3,h4{letter-spacing:-.015em;color:var(--mt-blue-dark)}
   padding:10px 14px;font-size:.84rem;margin:10px 0;font-weight:600;
 }
 
+.mini-tienda{margin:24px 0;padding:20px;background:var(--mt-card);border:1px solid var(--mt-border);border-radius:14px;box-shadow:var(--sombra)}
+.mini-tienda-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.mini-tienda-cab h2{margin:6px 0 2px;font-size:1.3rem}
+.mini-tienda-cab p{margin:0;color:var(--mt-text-muted);font-size:.86rem}
+.mini-tienda-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.mini-producto{min-width:0;overflow:hidden;background:var(--mt-card);border:1px solid var(--mt-border);border-radius:12px;display:flex;flex-direction:column;transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+.mini-producto:hover{transform:translateY(-3px);box-shadow:var(--sombra-hover)}
+.mini-producto-img{height:128px;background:var(--mt-bg);display:grid;place-items:center;overflow:hidden}
+.mini-producto-img img{width:100%;height:100%;object-fit:cover}
+.mini-producto-info{padding:11px;display:grid;align-content:start;gap:7px;flex:1}
+.mini-producto-nombre{color:var(--mt-text);font-size:.88rem;line-height:1.3;min-height:2.3em}
+.mini-producto-precio{font-size:1.1rem;color:var(--mt-blue-dark)}
+.mini-solo-compra{font-size:.78rem;color:var(--mt-text-muted);text-align:center;padding:7px}
+
 /* Héroe Corporativo M&T */
 .heroe{
   margin:22px 0 16px;
@@ -952,6 +966,7 @@ aside.panel{position:sticky;top:84px}
 
 /* Responsive */
 @media (max-width:980px){
+  .mini-tienda-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heroe{grid-template-columns:1fr;padding:28px 24px}
   .garantias{grid-template-columns:repeat(2,1fr)}
   .nav-sec{display:none}
@@ -1259,6 +1274,9 @@ aside.panel{position:sticky;top:84px}
   .graf-barras{grid-template-columns:repeat(3,1fr)}
 }
 @media (max-width:560px){
+  .mini-tienda-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .mini-tienda{padding:14px}
+  .mini-producto-img{height:100px}
   .codiciados-grid{grid-template-columns:1fr}
   .graf-barras{grid-template-columns:repeat(2,1fr)}
 }

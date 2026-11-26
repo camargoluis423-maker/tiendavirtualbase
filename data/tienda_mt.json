@@ -1,6 +1,6 @@
 {
   "next_prod_id": 20,
-  "next_pedido_id": 4,
+  "next_pedido_id": 5,
   "productos": [
     {
       "id": 1,
@@ -79,7 +79,7 @@
       "nombre": "PC Gamer Ryzen 5 · RTX 4060 · 16GB · SSD 1TB",
       "categoria": "Compus Gaming",
       "precio": 24900.0,
-      "stock": 4,
+      "stock": 3,
       "foto": "prod_2f01ebe9_Multimedia_4.jpg",
       "especs": ""
     },
@@ -205,13 +205,51 @@
       "rol": "comprador",
       "perfil": "General",
       "password_hash": "scrypt:32768:8:1$aPThpgEmopEg4Cdd$73d77b67d714bd1321716a832b179fa194b06ab92acfc97e89850c77a100f921f4b8439238d31e43aa9037ef68cddef1fd8fb4bc0ff62bf20873bef140b23bf1",
-      "puntos_lealtad": 488.48,
+      "puntos_lealtad": 567.91,
       "cupones_usados": [
         "REGRESO10"
       ]
     }
   ],
   "pedidos": [
+    {
+      "id": 4,
+      "fecha": "2026-11-26 08:28",
+      "cliente": "joaquin",
+      "perfil": "General",
+      "pago": "Tarjeta",
+      "items": [
+        {
+          "producto_id": 9,
+          "nombre": "PC Gamer Ryzen 5 · RTX 4060 · 16GB · SSD 1TB",
+          "categoria": "Compus Gaming",
+          "cantidad": 1,
+          "precio": 24900.0,
+          "precio_original": 24900.0,
+          "descuento_prod": 0.0,
+          "importe": 24900.0
+        }
+      ],
+      "subtotal": 24900.0,
+      "descuento": 488.48,
+      "iva": 3984.0,
+      "total": 28395.52,
+      "estado": "Pendiente",
+      "historial_estados": [
+        {
+          "estado": "Pendiente",
+          "fecha": "2026-11-26 08:28"
+        }
+      ],
+      "stock_reintegrado": false,
+      "datos_pago": {
+        "ultimos4": "6345",
+        "titular": "Joaquin castillo gomez",
+        "red": "Visa"
+      },
+      "usuario": "comprador@mtcom1.mx",
+      "puntos_ganados": 567.91
+    },
     {
       "id": 3,
       "fecha": "2026-11-26 07:38",

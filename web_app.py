@@ -300,8 +300,38 @@ def _buscar_usuario(datos: dict, identificador: str):
     return None
 
 
-def usuario_actual():
-    auth = session.get("usuario_auth")
+def _rol_sesion_actual(rol_forzado=None):
+    if rol_forzado in ("comprador", "vendedor"):
+        return rol_forzado
+    if request.endpoint == "logout":
+        rol_form = request.form.get("rol", "")
+        if rol_form in ("comprador", "vendedor"):
+            return rol_form
+    rol_solicitado = request.values.get("rol", "")
+    if request.endpoint == "login" and rol_solicitado in ("comprador", "vendedor"):
+        return rol_solicitado
+    ruta = request.path
+    if ruta == "/vendedor" or ruta.startswith("/vendedor/"):
+        return "vendedor"
+    if ruta.startswith(("/carrito", "/pagar", "/comprar", "/mis-pedidos", "/armador-pc", "/cotizador", "/trade-in", "/recomendador", "/comparador", "/api/favoritos")):
+        return "comprador"
+    sesiones = session.get("usuarios_auth", {})
+    if "comprador" in sesiones:
+        return "comprador"
+    if "vendedor" in sesiones:
+        return "vendedor"
+    legado = session.get("usuario_auth", {})
+    return legado.get("rol", "comprador")
+
+
+def usuario_actual(rol=None):
+    sesiones = session.get("usuarios_auth", {})
+    rol_actual = _rol_sesion_actual(rol)
+    auth = sesiones.get(rol_actual)
+    if not auth:
+        legado = session.get("usuario_auth")
+        if not rol or (legado and legado.get("rol") == rol_actual):
+            auth = legado
     if not auth or not auth.get("usuario"):
         return None
     u = _buscar_usuario(cargar(), auth["usuario"])
@@ -323,7 +353,7 @@ def requiere_rol(rol=None):
     def decorador(fn):
         @wraps(fn)
         def envuelto(*args, **kwargs):
-            u = usuario_actual()
+            u = usuario_actual(rol)
             if not u:
                 if request.path != "/":
                     flash("Inicia sesión para acceder a esta sección.", "aviso")
@@ -576,7 +606,7 @@ def _dinero(valor):
 
 @app.context_processor
 def contexto():
-    u = usuario_actual()
+    u = usuario_actual(_rol_sesion_actual())
     if u:
         datos = cargar()
         carrito = carrito_sesion() if u["rol"] == "comprador" else {}
@@ -628,7 +658,9 @@ def contexto():
 
 @app.before_request
 def proteger_post():
-    if request.method == "POST":
+    # Logout solo invalida la sesión local. Permitirlo aunque el formulario
+    # provenga de una pestaña abierta antes de rotar el token CSRF.
+    if request.method == "POST" and request.endpoint != "logout":
         token = request.form.get("csrf") or request.headers.get("X-CSRF-Token", "")
         if not secrets.compare_digest(token, session.get("csrf", "x")):
             abort(400, "Sesión inválida o expirada. Recarga la página e inténtalo de nuevo.")
@@ -638,7 +670,6 @@ def proteger_post():
 # Archivos y API
 # ---------------------------------------------------------------------------
 @app.route("/fotos/<path:nombre>")
-@requiere_rol()
 def foto(nombre):
     """Sirve solo las fotos de productos (nunca el JSON de datos ni los respaldos)."""
     return send_from_directory(FOTOS_DIR, nombre)
@@ -807,7 +838,6 @@ def _ordenar_productos(lista: list, orden: str) -> list:
 
 
 @app.route("/")
-@requiere_rol()
 def index():
     datos = cargar()
     cat = request.args.get("cat", "Todas")
@@ -902,7 +932,6 @@ def _tambien_llevaron(datos: dict, pids_base: list, limite: int = 4) -> list:
 
 
 @app.route("/producto/<int:pid>")
-@requiere_rol()
 def producto_detalle(pid):
     datos = cargar()
     prod = logica.buscar_producto(datos, pid)
@@ -1110,25 +1139,41 @@ def login():
                                    identificador=identificador, next_url=siguiente,
                                    perfiles=[(p, logica.etiqueta_perfil(p)) for p in PERFILES_CLIENTE]), 401
 
+        if user["rol"] != rol_tab:
+            otro = "Vendedor" if user["rol"] == "vendedor" else "Comprador"
+            flash(f"Esta cuenta es de {otro.lower()}. Selecciona esa pestaña para iniciar sesión.", "aviso")
+            return render_template("login.html", rol_tab=rol_tab, modo="login",
+                                   identificador=identificador, next_url=siguiente,
+                                   perfiles=[(p, logica.etiqueta_perfil(p)) for p in PERFILES_CLIENTE]), 403
+
         _limpiar_fallos_login(clave_intento)
-        carrito = session.get("carrito")
-        session.clear()  # rota la sesión al autenticar y evita fijación de sesión
-        if isinstance(carrito, dict):
-            session["carrito"] = carrito
-        session["csrf"] = secrets.token_hex(16)
-        session["usuario_auth"] = {
+        sesiones = dict(session.get("usuarios_auth", {}))
+        legado = session.get("usuario_auth")
+        if legado and legado.get("rol") in ("comprador", "vendedor"):
+            sesiones.setdefault(legado["rol"], legado)
+        session["usuarios_auth"] = sesiones
+        session["usuarios_auth"][user["rol"]] = {
             "usuario": user["usuario"],
             "nombre": user["nombre"],
             "rol": user["rol"],
             "perfil": user.get("perfil", "General"),
         }
+        session.pop("usuario_auth", None)
+        session.setdefault("csrf", secrets.token_hex(16))
         if user["rol"] == "comprador":
             session["cliente"] = user["nombre"]
             session["perfil"] = user.get("perfil", "General")
         registrar_evento("AUTH", f"[WEB] Inicio de sesión ({user['rol']}): {user['usuario']}")
         flash(f"Bienvenido, {user['nombre']} ({user['rol'].capitalize()}).", "ok")
         respaldo = url_for("vendedor_panel") if user["rol"] == "vendedor" else url_for("index")
-        return redirect(_destino_seguro(siguiente, respaldo))
+        destinos_por_rol = {
+            "comprador": ("/", "/producto/", "/carrito", "/mis-pedidos", "/pedido/"),
+            "vendedor": ("/vendedor",),
+        }
+        destino = _destino_seguro(siguiente, respaldo)
+        if not any(destino == prefijo or destino.startswith(prefijo) for prefijo in destinos_por_rol[user["rol"]]):
+            destino = respaldo
+        return redirect(destino)
 
     return render_template(
         "login.html",
@@ -1187,17 +1232,19 @@ def registro():
         datos.setdefault("usuarios", []).append(nuevo)
         guardar_almacenamiento(datos)
 
-    carrito = session.get("carrito")
-    session.clear()
-    if isinstance(carrito, dict):
-        session["carrito"] = carrito
-    session["csrf"] = secrets.token_hex(16)
-    session["usuario_auth"] = {
+    sesiones = dict(session.get("usuarios_auth", {}))
+    legado = session.get("usuario_auth")
+    if legado and legado.get("rol") in ("comprador", "vendedor"):
+        sesiones.setdefault(legado["rol"], legado)
+    session["usuarios_auth"] = sesiones
+    session["usuarios_auth"]["comprador"] = {
         "usuario": nuevo["usuario"],
         "nombre": nuevo["nombre"],
         "rol": "comprador",
         "perfil": perfil,
     }
+    session.pop("usuario_auth", None)
+    session.setdefault("csrf", secrets.token_hex(16))
     session["cliente"] = nombre
     session["perfil"] = perfil
     registrar_evento("AUTH", f"[WEB] Nuevo registro de comprador: {nuevo['usuario']} ({perfil})")
@@ -1208,8 +1255,11 @@ def registro():
 @app.post("/logout")
 def logout():
     u = usuario_actual()
-    session.clear()
-    session["csrf"] = secrets.token_hex(16)
+    sesiones = dict(session.get("usuarios_auth", {}))
+    sesiones.pop(u["rol"], None) if u else None
+    session["usuarios_auth"] = sesiones
+    session.pop("usuario_auth", None)
+    session.setdefault("csrf", secrets.token_hex(16))
     if u:
         registrar_evento("AUTH", f"[WEB] Cierre de sesión: {u['usuario']}")
     flash("Sesión cerrada correctamente.", "ok")

@@ -51,6 +51,51 @@
   </li>
 </ul>
 
+{% if mas_codiciados %}
+<section class="mini-tienda reveal" aria-label="Productos destacados">
+  <div class="mini-tienda-cab">
+    <div>
+      <span class="cod-badge">SELECCIÓN M&amp;T</span>
+      <h2>Encuentra tu próximo equipo</h2>
+      <p>Productos destacados disponibles en tienda</p>
+    </div>
+    <a class="btn" href="#catalogo">Ver todo el catálogo &rarr;</a>
+  </div>
+  <div class="mini-tienda-grid">
+    {% for prod in mas_codiciados %}
+    {% set p_precio = precio_oferta(prod) %}
+    <article class="mini-producto">
+      <a class="mini-producto-img" href="{{ url_for('producto_detalle', pid=prod.id) }}">
+        {% if prod.foto %}
+          <img src="{{ url_for('foto', nombre=prod.foto) }}" alt="{{ prod.nombre }}" loading="lazy">
+        {% else %}
+          {{ icono(prod.categoria) }}
+        {% endif %}
+      </a>
+      <div class="mini-producto-info">
+        <span class="deal-cat">{{ prod.categoria }}</span>
+        <a class="mini-producto-nombre" href="{{ url_for('producto_detalle', pid=prod.id) }}">{{ prod.nombre }}</a>
+        <b class="mini-producto-precio">{{ p_precio|dinero }}</b>
+        {% if usuario and usuario.rol == 'comprador' %}
+        <form method="post" action="{{ url_for('carrito_agregar') }}">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="pid" value="{{ prod.id }}">
+          <input type="hidden" name="cantidad" value="1">
+          <input type="hidden" name="volver" value="{{ request.full_path.rstrip('?') }}">
+          <button class="btn mini primario bloque" type="submit">Agregar al carrito</button>
+        </form>
+        {% elif not usuario %}
+        <a class="btn mini primario bloque" href="{{ url_for('login', rol='comprador', next=url_for('producto_detalle', pid=prod.id)) }}">Inicia sesión para comprar</a>
+        {% else %}
+        <span class="mini-solo-compra">Compra disponible para clientes</span>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% if ofertas_relampago and cat == 'Todas' and not q %}
 <section class="flash-deals reveal" aria-label="Ofertas relámpago del día">
   <div class="flash-deals-cab">

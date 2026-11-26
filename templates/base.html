@@ -59,6 +59,7 @@
         {% endif %}
         <form method="post" action="{{ url_for('logout') }}" class="nav-logout">
           <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="rol" value="{{ usuario.rol }}">
           <button type="submit" class="nav-btn-salir" title="Cerrar sesión ({{ usuario.nombre }})">Salir</button>
         </form>
       {% else %}

@@ -96,6 +96,21 @@ Sistema de escritorio desarrollado en **Python** con interfaz gráfica en **Tkin
 
 Atajos de la app de escritorio: `Ctrl+1…4` cambia de pestaña, `F5` actualiza, `Supr` quita del carrito.
 
+### HTTPS y protección de cuentas
+
+La versión web activa HTTPS cuando se configuran un certificado TLS y su clave privada. En PowerShell:
+
+```powershell
+$env:MT_SSL_CERT = "C:\certificados\tienda.crt"
+$env:MT_SSL_KEY = "C:\certificados\tienda.key"
+$env:MT_SELLER_PASSWORD = "usa-una-frase-larga-y-unica"
+python web_app.py
+```
+
+Con HTTPS, el puerto predeterminado es 443 y la dirección es `https://localhost`. Para usar `--lan`, el certificado debe corresponder al nombre o IP con que se conectan los otros dispositivos. Usa un certificado emitido para ese nombre; los certificados autofirmados sirven para desarrollo local, pero el navegador mostrará una advertencia. Mantén la clave privada fuera del repositorio. Si TLS termina en un proxy inverso de confianza, configura también `MT_TRUSTED_PROXY=1` y `MT_SECURE_COOKIES=1`.
+
+Las contraseñas nuevas deben tener de 12 a 128 caracteres. El vendedor inicial solo se crea si `MT_SELLER_PASSWORD` está configurada con una contraseña de esa longitud; los compradores pueden registrarse desde la tienda. Para reemplazar las contraseñas de demostración de cuentas existentes, configura `MT_SELLER_PASSWORD` y/o `MT_BUYER_PASSWORD` con contraseñas nuevas de al menos 12 caracteres y reinicia la aplicación. Los intentos fallidos de inicio de sesión se bloquean durante 15 minutos después de cinco fallos para la misma cuenta y dirección IP.
+
 ---
 
 ## 📁 Estructura del Proyecto

@@ -127,8 +127,9 @@ def guardar_almacenamiento(datos: dict) -> None:
                 # Sincronizar usuarios
                 for u in datos.get("usuarios", []):
                     cur.execute("""
-                        INSERT IGNORE INTO usuarios (usuario, alias, nombre, rol, perfil, password_hash)
+                        INSERT INTO usuarios (usuario, alias, nombre, rol, perfil, password_hash)
                         VALUES (%s, %s, %s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash)
                     """, (u["usuario"], u.get("alias", u["usuario"]), u["nombre"], u["rol"], u.get("perfil", "General"), u["password_hash"]))
 
                 # Sincronizar pedidos

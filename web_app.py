@@ -21,6 +21,7 @@ import re
 import secrets
 import sys
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -39,6 +40,7 @@ from flask import (
     url_for,
 )
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 
 import logica
@@ -69,12 +71,26 @@ from utils_qr import qr_svg
 
 app = Flask(__name__)
 _cerrojo = threading.Lock()   # evita que dos compras simultáneas pisen el inventario
+_usuarios_cerrojo = threading.RLock()
+_auth_cerrojo = threading.Lock()
+_intentos_login = {}
+_INTENTOS_MAX_LOGIN = 5
+_VENTANA_BLOQUEO_LOGIN = 15 * 60
+_LONGITUD_MIN_PASSWORD = 12
+_LONGITUD_MAX_PASSWORD = 128
+
+
+def _password_fuerte(password: str) -> bool:
+    return _LONGITUD_MIN_PASSWORD <= len(password) <= _LONGITUD_MAX_PASSWORD
 
 
 def _clave_secreta() -> str:
     """Clave estable entre reinicios (para no perder carritos) guardada fuera del control de versiones."""
     if os.environ.get("MT_SECRET_KEY"):
-        return os.environ["MT_SECRET_KEY"]
+        clave = os.environ["MT_SECRET_KEY"]
+        if len(clave) < 32:
+            raise RuntimeError("MT_SECRET_KEY debe tener al menos 32 caracteres aleatorios.")
+        return clave
     ruta = os.path.join(DATA_DIR, ".secret_key")
     os.makedirs(DATA_DIR, exist_ok=True)
     if not os.path.exists(ruta):
@@ -85,41 +101,128 @@ def _clave_secreta() -> str:
 
 
 app.secret_key = _clave_secreta()
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+_tls_cert = os.environ.get("MT_SSL_CERT", "").strip()
+_tls_key = os.environ.get("MT_SSL_KEY", "").strip()
+if bool(_tls_cert) != bool(_tls_key):
+    raise RuntimeError("Para activar HTTPS configura MT_SSL_CERT y MT_SSL_KEY juntos.")
+if _tls_cert and (not os.path.isfile(_tls_cert) or not os.path.isfile(_tls_key)):
+    raise RuntimeError("No se encontró el certificado o la clave indicados en MT_SSL_CERT/MT_SSL_KEY.")
+SSL_CONTEXT = (_tls_cert, _tls_key) if _tls_cert else None
+_proxy_confiable = os.environ.get("MT_TRUSTED_PROXY", "0") == "1"
+if _proxy_confiable:
+    # Solo activar si el servidor recibe tráfico exclusivamente desde un proxy propio.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=bool(SSL_CONTEXT) or os.environ.get("MT_SECURE_COOKIES", "0") == "1",
+)
+
+
+@app.after_request
+def cabeceras_seguridad(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    if request.is_secure:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+    return response
 
 
 # ---------------------------------------------------------------------------
 # Utilidades
 # ---------------------------------------------------------------------------
 def _asegurar_usuarios(datos: dict) -> dict:
-    """Siembra cuentas iniciales (comprador y vendedor) si aún no existen usuarios."""
-    if datos.get("usuarios"):
-        return datos
-    with _cerrojo:
-        # Re-leer por si otro hilo ya sembró
-        if not datos.get("usuarios"):
-            pass_vendedor = os.environ.get("MT_SELLER_PASSWORD", "vendedor123")
-            pass_comprador = os.environ.get("MT_BUYER_PASSWORD", "comprador123")
-            datos["usuarios"] = [
-                {
+    """Crea el vendedor solo con clave configurada y actualiza cuentas semilla antiguas."""
+    with _usuarios_cerrojo:
+        usuarios = datos.get("usuarios")
+        if not isinstance(usuarios, list):
+            usuarios = []
+            datos["usuarios"] = usuarios
+        modificado = False
+        if not usuarios:
+            password_vendedor = os.environ.get("MT_SELLER_PASSWORD", "")
+            if _password_fuerte(password_vendedor):
+                usuarios.append({
                     "usuario": "vendedor@mtcom1.mx",
                     "alias": "vendedor",
                     "nombre": "Administrador M&T",
                     "rol": "vendedor",
                     "perfil": "General",
-                    "password_hash": generate_password_hash(pass_vendedor),
-                },
-                {
-                    "usuario": "comprador@mtcom1.mx",
-                    "alias": "comprador",
-                    "nombre": "Cliente Regional",
-                    "rol": "comprador",
-                    "perfil": "Estudiante",
-                    "password_hash": generate_password_hash(pass_comprador),
-                },
-            ]
+                    "password_hash": generate_password_hash(password_vendedor),
+                })
+                modificado = True
+
+        # Reemplaza hashes de las claves de demostración de versiones anteriores
+        # solo cuando el operador configuró una clave nueva y suficientemente larga.
+        semillas = {
+            ("vendedor", "vendedor@mtcom1.mx"): ("vendedor123", "MT_SELLER_PASSWORD"),
+            ("comprador", "comprador@mtcom1.mx"): ("comprador123", "MT_BUYER_PASSWORD"),
+        }
+        for usuario in usuarios:
+            semilla = semillas.get((usuario.get("rol"), str(usuario.get("usuario", "")).lower()))
+            if not semilla:
+                continue
+            password_anterior, variable = semilla
+            try:
+                era_semilla = check_password_hash(usuario.get("password_hash", ""), password_anterior)
+            except (ValueError, TypeError):
+                era_semilla = False
+            password_nueva = os.environ.get(variable, "")
+            if era_semilla and _password_fuerte(password_nueva):
+                usuario["password_hash"] = generate_password_hash(password_nueva)
+                modificado = True
+        if modificado:
             guardar_almacenamiento(datos)
     return datos
+
+
+def _credencial_predeterminada(usuario: dict, password: str) -> bool:
+    semillas = {
+        ("vendedor", "vendedor@mtcom1.mx"): "vendedor123",
+        ("comprador", "comprador@mtcom1.mx"): "comprador123",
+    }
+    predeterminada = semillas.get((usuario.get("rol"), str(usuario.get("usuario", "")).lower()))
+    return bool(predeterminada and secrets.compare_digest(password, predeterminada))
+
+
+def _clave_intento_login(identificador: str) -> tuple[str, str]:
+    return (request.remote_addr or "desconocida", (identificador or "").strip().lower()[:120])
+
+
+def _login_bloqueado(clave: tuple[str, str]) -> bool:
+    ahora = time.monotonic()
+    with _auth_cerrojo:
+        intento = _intentos_login.get(clave)
+        if not intento:
+            return False
+        if intento["bloqueado_hasta"] > ahora:
+            return True
+        if ahora - intento["ultimo"] >= _VENTANA_BLOQUEO_LOGIN:
+            _intentos_login.pop(clave, None)
+        return False
+
+
+def _registrar_fallo_login(clave: tuple[str, str]) -> None:
+    ahora = time.monotonic()
+    with _auth_cerrojo:
+        if len(_intentos_login) > 10000:
+            for antigua, intento in list(_intentos_login.items()):
+                if ahora - intento["ultimo"] >= _VENTANA_BLOQUEO_LOGIN:
+                    _intentos_login.pop(antigua, None)
+        intento = _intentos_login.get(clave)
+        if not intento or ahora - intento["ultimo"] >= _VENTANA_BLOQUEO_LOGIN:
+            intento = {"fallos": 0, "bloqueado_hasta": 0.0}
+        intento["fallos"] += 1
+        intento["ultimo"] = ahora
+        if intento["fallos"] >= _INTENTOS_MAX_LOGIN:
+            intento["bloqueado_hasta"] = ahora + _VENTANA_BLOQUEO_LOGIN
+        _intentos_login[clave] = intento
+
+
+def _limpiar_fallos_login(clave: tuple[str, str]) -> None:
+    with _auth_cerrojo:
+        _intentos_login.pop(clave, None)
 
 
 def cargar():
@@ -925,9 +1028,23 @@ def login():
     if request.method == "POST":
         identificador = request.form.get("identificador", "").strip()
         password = request.form.get("password", "")
+        clave_intento = _clave_intento_login(identificador)
+        if _login_bloqueado(clave_intento):
+            flash("Demasiados intentos. Espera 15 minutos antes de volver a intentar.", "error")
+            return render_template("login.html", rol_tab=rol_tab, modo="login",
+                                   identificador=identificador, next_url=siguiente,
+                                   perfiles=[(p, logica.etiqueta_perfil(p)) for p in PERFILES_CLIENTE]), 429
+
         datos = cargar()
         user = _buscar_usuario(datos, identificador)
-        if not user or not check_password_hash(user.get("password_hash", ""), password):
+        password_valido = False
+        if user and 0 < len(password) <= _LONGITUD_MAX_PASSWORD:
+            try:
+                password_valido = check_password_hash(user.get("password_hash", ""), password)
+            except (TypeError, ValueError):
+                password_valido = False
+        if not password_valido or _credencial_predeterminada(user, password):
+            _registrar_fallo_login(clave_intento)
             flash("Usuario o contraseña incorrectos.", "error")
             return render_template("login.html", rol_tab=rol_tab, modo="login",
                                    identificador=identificador, next_url=siguiente,
@@ -940,6 +1057,11 @@ def login():
                                    identificador=identificador, next_url=siguiente,
                                    perfiles=[(p, logica.etiqueta_perfil(p)) for p in PERFILES_CLIENTE]), 403
 
+        _limpiar_fallos_login(clave_intento)
+        carrito = session.get("carrito")
+        session.clear()  # rota la sesión al autenticar y evita fijación de sesión
+        if isinstance(carrito, dict):
+            session["carrito"] = carrito
         session["csrf"] = secrets.token_hex(16)
         session["usuario_auth"] = {
             "usuario": user["usuario"],
@@ -979,8 +1101,10 @@ def registro():
         errores.append("Ingresa tu nombre completo (mínimo 2 caracteres).")
     if len(identificador) < 3 or " " in identificador:
         errores.append("Ingresa un correo o usuario válido (sin espacios, mínimo 3 caracteres).")
-    if len(password) < 6:
-        errores.append("La contraseña debe tener al menos 6 caracteres.")
+    if len(password) < _LONGITUD_MIN_PASSWORD:
+        errores.append(f"La contraseña debe tener al menos {_LONGITUD_MIN_PASSWORD} caracteres.")
+    elif len(password) > _LONGITUD_MAX_PASSWORD:
+        errores.append(f"La contraseña no puede superar {_LONGITUD_MAX_PASSWORD} caracteres.")
 
     with _cerrojo:
         datos = cargar()
@@ -1010,6 +1134,10 @@ def registro():
         datos.setdefault("usuarios", []).append(nuevo)
         guardar_almacenamiento(datos)
 
+    carrito = session.get("carrito")
+    session.clear()
+    if isinstance(carrito, dict):
+        session["carrito"] = carrito
     session["csrf"] = secrets.token_hex(16)
     session["usuario_auth"] = {
         "usuario": nuevo["usuario"],
@@ -1027,7 +1155,7 @@ def registro():
 @app.post("/logout")
 def logout():
     u = usuario_actual()
-    session.pop("usuario_auth", None)
+    session.clear()
     session["csrf"] = secrets.token_hex(16)
     if u:
         registrar_evento("AUTH", f"[WEB] Cierre de sesión: {u['usuario']}")
@@ -1900,5 +2028,5 @@ def error(e):
 
 if __name__ == "__main__":
     host = "0.0.0.0" if "--lan" in sys.argv else "127.0.0.1"
-    port = int(os.environ.get("MT_PORT", 80))
-    app.run(host=host, port=port, debug=False)
+    port = int(os.environ.get("MT_PORT", 443 if SSL_CONTEXT else 80))
+    app.run(host=host, port=port, debug=False, ssl_context=SSL_CONTEXT)

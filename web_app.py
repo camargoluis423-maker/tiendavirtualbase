@@ -1110,13 +1110,6 @@ def login():
                                    identificador=identificador, next_url=siguiente,
                                    perfiles=[(p, logica.etiqueta_perfil(p)) for p in PERFILES_CLIENTE]), 401
 
-        if user["rol"] != rol_tab:
-            otro = "Vendedor" if user["rol"] == "vendedor" else "Comprador"
-            flash(f"Esa cuenta pertenece al rol {otro}. Cambia la pestaña a «{otro}» para entrar.", "aviso")
-            return render_template("login.html", rol_tab=user["rol"], modo="login",
-                                   identificador=identificador, next_url=siguiente,
-                                   perfiles=[(p, logica.etiqueta_perfil(p)) for p in PERFILES_CLIENTE]), 403
-
         _limpiar_fallos_login(clave_intento)
         carrito = session.get("carrito")
         session.clear()  # rota la sesión al autenticar y evita fijación de sesión

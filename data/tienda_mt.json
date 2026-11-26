@@ -1,13 +1,13 @@
 {
   "next_prod_id": 20,
-  "next_pedido_id": 2,
+  "next_pedido_id": 4,
   "productos": [
     {
       "id": 1,
       "nombre": "Laptop Workstation 16GB RAM / SSD 512GB",
       "categoria": "Computadoras",
       "precio": 17500.0,
-      "stock": 2,
+      "stock": 3,
       "foto": "prod_84907017_Multimedia.jpg",
       "especs": ""
     },
@@ -25,7 +25,7 @@
       "nombre": "Silla Ergonómica de Malla Alta Densidad",
       "categoria": "Mobiliario",
       "precio": 3950.0,
-      "stock": 1,
+      "stock": 0,
       "foto": "prod_5f2766f5_Multimedia_7.jpg",
       "especs": ""
     },
@@ -204,10 +204,105 @@
       "nombre": "joaquin",
       "rol": "comprador",
       "perfil": "General",
-      "password_hash": "scrypt:32768:8:1$aPThpgEmopEg4Cdd$73d77b67d714bd1321716a832b179fa194b06ab92acfc97e89850c77a100f921f4b8439238d31e43aa9037ef68cddef1fd8fb4bc0ff62bf20873bef140b23bf1"
+      "password_hash": "scrypt:32768:8:1$aPThpgEmopEg4Cdd$73d77b67d714bd1321716a832b179fa194b06ab92acfc97e89850c77a100f921f4b8439238d31e43aa9037ef68cddef1fd8fb4bc0ff62bf20873bef140b23bf1",
+      "puntos_lealtad": 488.48,
+      "cupones_usados": [
+        "REGRESO10"
+      ]
     }
   ],
   "pedidos": [
+    {
+      "id": 3,
+      "fecha": "2026-11-26 07:38",
+      "cliente": "joaquin",
+      "perfil": "General",
+      "pago": "Tarjeta",
+      "items": [
+        {
+          "producto_id": 3,
+          "nombre": "Silla Ergonómica de Malla Alta Densidad",
+          "categoria": "Mobiliario",
+          "cantidad": 1,
+          "precio": 3950.0,
+          "precio_original": 3950.0,
+          "descuento_prod": 0.0,
+          "importe": 3950.0
+        }
+      ],
+      "subtotal": 3950.0,
+      "descuento": 395.0,
+      "iva": 568.8,
+      "total": 4123.8,
+      "estado": "Entregado",
+      "historial_estados": [
+        {
+          "estado": "Pendiente",
+          "fecha": "2026-11-26 07:38"
+        },
+        {
+          "estado": "Enviado",
+          "fecha": "2026-11-26 07:45"
+        },
+        {
+          "estado": "Entregado",
+          "fecha": "2026-11-26 07:46"
+        }
+      ],
+      "stock_reintegrado": 0,
+      "datos_pago": {
+        "ultimos4": "6875",
+        "titular": "Joaquin castillo gomez",
+        "red": "Visa"
+      },
+      "cupon": "REGRESO10",
+      "usuario": "comprador@mtcom1.mx",
+      "puntos_ganados": 82.48,
+      "datos_pago_json": "{\"ultimos4\": \"6875\", \"titular\": \"Joaquin castillo gomez\", \"red\": \"Visa\"}"
+    },
+    {
+      "id": 2,
+      "fecha": "2026-11-26 07:02",
+      "cliente": "joaquin",
+      "perfil": "General",
+      "pago": "Tarjeta",
+      "items": [
+        {
+          "producto_id": 1,
+          "nombre": "Laptop Workstation 16GB RAM / SSD 512GB",
+          "categoria": "Computadoras",
+          "cantidad": 1,
+          "precio": 17500.0,
+          "precio_original": 17500.0,
+          "descuento_prod": 0.0,
+          "importe": 17500.0
+        }
+      ],
+      "subtotal": 17500.0,
+      "descuento": 0.0,
+      "iva": 2800.0,
+      "total": 20300.0,
+      "estado": "Enviado",
+      "historial_estados": [
+        {
+          "estado": "Pendiente",
+          "fecha": "2026-11-26 07:02"
+        },
+        {
+          "estado": "Enviado",
+          "fecha": "2026-11-26 07:45"
+        }
+      ],
+      "stock_reintegrado": 0,
+      "datos_pago": {
+        "ultimos4": "5745",
+        "titular": "joaquin castillo gomez",
+        "red": "Mastercard"
+      },
+      "usuario": "comprador@mtcom1.mx",
+      "puntos_ganados": 406.0,
+      "datos_pago_json": "{\"ultimos4\": \"5745\", \"titular\": \"joaquin castillo gomez\", \"red\": \"Mastercard\"}"
+    },
     {
       "id": 1,
       "fecha": "2026-11-26 01:59",
@@ -230,14 +325,18 @@
       "descuento": 0.0,
       "iva": 5600.0,
       "total": 40600.0,
-      "estado": "Pendiente",
+      "estado": "Cancelado",
       "historial_estados": [
         {
           "estado": "Pendiente",
           "fecha": "2026-11-26 01:59"
+        },
+        {
+          "estado": "Cancelado",
+          "fecha": "2026-11-26 07:45"
         }
       ],
-      "stock_reintegrado": 0,
+      "stock_reintegrado": 1,
       "datos_pago": {
         "ultimos4": "2343",
         "titular": "Joaquin castillo gomez",

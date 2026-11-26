@@ -1,14 +1,15 @@
 {
   "next_prod_id": 20,
-  "next_pedido_id": 1,
+  "next_pedido_id": 2,
   "productos": [
     {
       "id": 1,
       "nombre": "Laptop Workstation 16GB RAM / SSD 512GB",
       "categoria": "Computadoras",
       "precio": 17500.0,
-      "stock": 4,
-      "foto": "prod_84907017_Multimedia.jpg"
+      "stock": 2,
+      "foto": "prod_84907017_Multimedia.jpg",
+      "especs": ""
     },
     {
       "id": 2,
@@ -16,7 +17,8 @@
       "categoria": "Software",
       "precio": 2800.0,
       "stock": 5,
-      "foto": "prod_4b88949f_Multimedia_6.jpg"
+      "foto": "prod_4b88949f_Multimedia_6.jpg",
+      "especs": ""
     },
     {
       "id": 3,
@@ -24,7 +26,8 @@
       "categoria": "Mobiliario",
       "precio": 3950.0,
       "stock": 1,
-      "foto": "prod_5f2766f5_Multimedia_7.jpg"
+      "foto": "prod_5f2766f5_Multimedia_7.jpg",
+      "especs": ""
     },
     {
       "id": 4,
@@ -32,7 +35,8 @@
       "categoria": "Mobiliario",
       "precio": 4600.0,
       "stock": 0,
-      "foto": "prod_66afe698_Multimedia_9.jpg"
+      "foto": "prod_66afe698_Multimedia_9.jpg",
+      "especs": ""
     },
     {
       "id": 5,
@@ -40,7 +44,8 @@
       "categoria": "Equipo",
       "precio": 7000.0,
       "stock": 8,
-      "foto": "prod_1795537093_Reto.jpeg"
+      "foto": "prod_1795537093_Reto.jpeg",
+      "especs": ""
     },
     {
       "id": 6,
@@ -48,7 +53,8 @@
       "categoria": "Computadoras",
       "precio": 11900.0,
       "stock": 6,
-      "foto": "prod_cb34d902_Multimedia_1.jpg"
+      "foto": "prod_cb34d902_Multimedia_1.jpg",
+      "especs": ""
     },
     {
       "id": 7,
@@ -56,7 +62,8 @@
       "categoria": "Computadoras",
       "precio": 14500.0,
       "stock": 3,
-      "foto": "prod_a4588f3b_Multimedia_2.jpg"
+      "foto": "prod_a4588f3b_Multimedia_2.jpg",
+      "especs": ""
     },
     {
       "id": 8,
@@ -64,7 +71,8 @@
       "categoria": "Computadoras",
       "precio": 9800.0,
       "stock": 9,
-      "foto": "prod_82650f7f_Multimedia_3.jpg"
+      "foto": "prod_82650f7f_Multimedia_3.jpg",
+      "especs": ""
     },
     {
       "id": 9,
@@ -72,7 +80,8 @@
       "categoria": "Compus Gaming",
       "precio": 24900.0,
       "stock": 4,
-      "foto": "prod_2f01ebe9_Multimedia_4.jpg"
+      "foto": "prod_2f01ebe9_Multimedia_4.jpg",
+      "especs": ""
     },
     {
       "id": 10,
@@ -80,7 +89,8 @@
       "categoria": "Compus Gaming",
       "precio": 39900.0,
       "stock": 2,
-      "foto": "prod_ee01bf13_Multimedia_10.jpg"
+      "foto": "prod_ee01bf13_Multimedia_10.jpg",
+      "especs": ""
     },
     {
       "id": 11,
@@ -88,7 +98,8 @@
       "categoria": "Compus Gaming",
       "precio": 22500.0,
       "stock": 0,
-      "foto": "prod_97a87d7d_Multimedia_11.jpg"
+      "foto": "prod_97a87d7d_Multimedia_11.jpg",
+      "especs": ""
     },
     {
       "id": 12,
@@ -96,7 +107,8 @@
       "categoria": "Componentes",
       "precio": 7800.0,
       "stock": 5,
-      "foto": "prod_50f037fd_Multimedia_13.jpg"
+      "foto": "prod_50f037fd_Multimedia_13.jpg",
+      "especs": ""
     },
     {
       "id": 13,
@@ -104,7 +116,8 @@
       "categoria": "Componentes",
       "precio": 1150.0,
       "stock": 11,
-      "foto": "prod_7c15b18f_Multimedia_14.jpg"
+      "foto": "prod_7c15b18f_Multimedia_14.jpg",
+      "especs": ""
     },
     {
       "id": 14,
@@ -112,7 +125,8 @@
       "categoria": "Componentes",
       "precio": 1350.0,
       "stock": 10,
-      "foto": "prod_057e19d9_Multimedia_15.jpg"
+      "foto": "prod_057e19d9_Multimedia_15.jpg",
+      "especs": ""
     },
     {
       "id": 15,
@@ -120,7 +134,8 @@
       "categoria": "Componentes",
       "precio": 4900.0,
       "stock": 2,
-      "foto": "prod_d6e514e2_Multimedia_17.jpg"
+      "foto": "prod_d6e514e2_Multimedia_17.jpg",
+      "especs": ""
     },
     {
       "id": 16,
@@ -128,7 +143,8 @@
       "categoria": "Componentes",
       "precio": 1250.0,
       "stock": 7,
-      "foto": "prod_7d5de52b_Multimedia_18.jpg"
+      "foto": "prod_7d5de52b_Multimedia_18.jpg",
+      "especs": ""
     },
     {
       "id": 17,
@@ -136,7 +152,8 @@
       "categoria": "Componentes",
       "precio": 1450.0,
       "stock": 6,
-      "foto": "prod_873d36c1_Multimedia_19.jpg"
+      "foto": "prod_873d36c1_Multimedia_19.jpg",
+      "especs": ""
     },
     {
       "id": 18,
@@ -163,7 +180,6 @@
       "especs": "laptop con buena grafica y procesador , integra una  ryzen7 y una rtx 5050"
     }
   ],
-  "pedidos": [],
   "usuarios": [
     {
       "usuario": "vendedor@mtcom1.mx",
@@ -171,15 +187,56 @@
       "nombre": "Administrador M&T",
       "rol": "vendedor",
       "perfil": "General",
-      "password_hash": "scrypt:32768:8:1$povbI2Z9wqtcKTBE$2a196ec4f856fb4de1bde3dd62ab19ccaa5479e9616dc6733bd1ebd8bc6e609978677c5daa9c501dc68074a109bb7e99b549eb4cbec0b203a1d572c40df45889"
+      "password_hash": "scrypt:32768:8:1$PIbB3LNqu5mADe0K$2079a799484a5a67c8681d3c56fcadf5053250f143ec20fae28fbbb76f2f624835614ae9c3db3521bb5658f3bd478865bb616ae9af5139929ff772006afd0a19"
     },
     {
-      "usuario": "comprador@mtcom1.mx",
-      "alias": "comprador",
-      "nombre": "Cliente Regional",
+      "usuario": "paco123@gmail.com",
+      "alias": "paco123",
+      "nombre": "paco",
       "rol": "comprador",
-      "perfil": "Estudiante",
-      "password_hash": "scrypt:32768:8:1$Dme5KbRchkIC8Svd$31f326a7f1f0ba51732e846e4b768ca11cb6d89af7196be24617d4b03198f71403d64082ff1d9ae0ce1478a153ad9b61a9122c376d04233ee1222f20ab9d6ad9"
+      "perfil": "General",
+      "password_hash": "scrypt:32768:8:1$EwKMiwEK9O8ur84f$32f700848b094ed9741d3054a7ed14e8d345605896482bd56e6c8f79fffd3f14fdae308e32bd74902c49a64ed8abcc15f026ea2562ef939865b4a8bb0af34809",
+      "puntos_lealtad": 812.0
+    }
+  ],
+  "pedidos": [
+    {
+      "id": 1,
+      "fecha": "2026-11-26 01:59",
+      "cliente": "paco",
+      "perfil": "General",
+      "pago": "Tarjeta",
+      "items": [
+        {
+          "producto_id": 1,
+          "nombre": "Laptop Workstation 16GB RAM / SSD 512GB",
+          "categoria": "Computadoras",
+          "cantidad": 2,
+          "precio": 17500.0,
+          "precio_original": 17500.0,
+          "descuento_prod": 0.0,
+          "importe": 35000.0
+        }
+      ],
+      "subtotal": 35000.0,
+      "descuento": 0.0,
+      "iva": 5600.0,
+      "total": 40600.0,
+      "estado": "Pendiente",
+      "historial_estados": [
+        {
+          "estado": "Pendiente",
+          "fecha": "2026-11-26 01:59"
+        }
+      ],
+      "stock_reintegrado": false,
+      "datos_pago": {
+        "ultimos4": "2343",
+        "titular": "Joaquin castillo gomez",
+        "red": "Visa"
+      },
+      "usuario": "paco123@gmail.com",
+      "puntos_ganados": 812.0
     }
   ]
 }

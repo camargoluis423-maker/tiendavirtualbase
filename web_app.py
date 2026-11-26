@@ -11,9 +11,10 @@ y abrir http://localhost:5000
 Para verla desde otros dispositivos de tu red:  python web_app.py --lan
 (asegúrate de permitir el puerto 5000 en el firewall).
 """
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import csv
+import ipaddress
 import io
 import json
 import os
@@ -101,13 +102,72 @@ def _clave_secreta() -> str:
 
 
 app.secret_key = _clave_secreta()
-_tls_cert = os.environ.get("MT_SSL_CERT", "").strip()
-_tls_key = os.environ.get("MT_SSL_KEY", "").strip()
-if bool(_tls_cert) != bool(_tls_key):
-    raise RuntimeError("Para activar HTTPS configura MT_SSL_CERT y MT_SSL_KEY juntos.")
-if _tls_cert and (not os.path.isfile(_tls_cert) or not os.path.isfile(_tls_key)):
-    raise RuntimeError("No se encontró el certificado o la clave indicados en MT_SSL_CERT/MT_SSL_KEY.")
-SSL_CONTEXT = (_tls_cert, _tls_key) if _tls_cert else None
+
+
+def _contexto_tls():
+    """Usa certificados configurados o genera uno local para HTTPS automático."""
+    cert_configurado = os.environ.get("MT_SSL_CERT", "").strip()
+    clave_configurada = os.environ.get("MT_SSL_KEY", "").strip()
+    if cert_configurado and clave_configurada and os.path.isfile(cert_configurado) and os.path.isfile(clave_configurada):
+        return cert_configurado, clave_configurada
+
+    if cert_configurado or clave_configurada:
+        registrar_evento("ALERTA", "Certificado TLS configurado no encontrado; se generará uno local para HTTPS.")
+
+    carpeta_tls = os.path.join(DATA_DIR, "tls")
+    cert_local = os.path.join(carpeta_tls, "localhost.crt")
+    clave_local = os.path.join(carpeta_tls, "localhost.key")
+    if os.path.isfile(cert_local) and os.path.isfile(clave_local):
+        return cert_local, clave_local
+
+    try:
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.x509.oid import NameOID
+
+        os.makedirs(carpeta_tls, exist_ok=True)
+        privada = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        ahora = datetime.now(timezone.utc)
+        nombre = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
+        certificado = (
+            x509.CertificateBuilder()
+            .subject_name(nombre)
+            .issuer_name(nombre)
+            .public_key(privada.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(ahora - timedelta(minutes=1))
+            .not_valid_after(ahora + timedelta(days=365))
+            .add_extension(
+                x509.SubjectAlternativeName([
+                    x509.DNSName("localhost"),
+                    x509.IPAddress(ipaddress.ip_address("127.0.0.1")),
+                ]),
+                critical=False,
+            )
+            .sign(privada, hashes.SHA256())
+        )
+        with open(clave_local, "wb") as archivo:
+            archivo.write(
+                privada.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption(),
+                )
+            )
+        with open(cert_local, "wb") as archivo:
+            archivo.write(certificado.public_bytes(serialization.Encoding.PEM))
+        try:
+            os.chmod(clave_local, 0o600)
+        except OSError:
+            pass
+        registrar_evento("INFO", "Certificado HTTPS local generado automáticamente.")
+        return cert_local, clave_local
+    except ImportError as e:
+        raise RuntimeError("Falta la dependencia cryptography para generar el certificado HTTPS local.") from e
+
+
+SSL_CONTEXT = _contexto_tls()
 _proxy_confiable = os.environ.get("MT_TRUSTED_PROXY", "0") == "1"
 if _proxy_confiable:
     # Solo activar si el servidor recibe tráfico exclusivamente desde un proxy propio.
@@ -115,7 +175,7 @@ if _proxy_confiable:
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=bool(SSL_CONTEXT) or os.environ.get("MT_SECURE_COOKIES", "0") == "1",
+    SESSION_COOKIE_SECURE=True,
 )
 
 
@@ -1647,7 +1707,12 @@ def comprar():
             ganados = round(pedido["total"] * PUNTOS_TASA, 2)
             u_rec["puntos_lealtad"] = round(restante_pts + ganados, 2)
             pedido["puntos_ganados"] = ganados
-        guardar_almacenamiento(datos)
+        try:
+            guardar_almacenamiento(datos)
+        except RuntimeError as e:
+            registrar_evento("ERROR", f"[WEB] No se pudo finalizar la compra: {e}")
+            flash("No pudimos registrar tu compra. El carrito sigue intacto; inténtalo de nuevo.", "error")
+            return redirect(url_for("carrito"))
 
     session.pop("cupon_codigo", None)
     session.pop("usar_puntos", None)

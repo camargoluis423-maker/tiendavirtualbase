@@ -6,6 +6,8 @@ fallan en lugar de cambiar silenciosamente a un almacén local.
 import json
 import os
 import sys
+import re
+import threading
 from datetime import datetime
 from logger import registrar_evento
 
@@ -43,8 +45,19 @@ def _leer_payload(fila: dict) -> dict:
 
 class MariaDBManager:
     def __init__(self):
-        self.conexion = None
+        self._local = threading.local()
         self._disponible = False
+        self._schema_listo = False
+        self._schema_lock = threading.Lock()
+        self._migracion_lock = threading.Lock()
+
+    @property
+    def conexion(self):
+        return getattr(self._local, "conexion", None)
+
+    @conexion.setter
+    def conexion(self, valor):
+        self._local.conexion = valor
 
     def conectar(self) -> bool:
         """Intenta conectarse automáticamente a MariaDB."""
@@ -109,8 +122,43 @@ class MariaDBManager:
             return self.conexion.cursor(dictionary=True)
         return self.conexion.cursor()
 
+    def asegurar_esquema(self) -> bool:
+        """Crea o actualiza tablas desde database_schema.sql una vez por proceso."""
+        if self._schema_listo:
+            return True
+        with self._schema_lock:
+            if self._schema_listo:
+                return True
+            if not self.asegurar_conexion():
+                return False
+            ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "database_schema.sql")
+            try:
+                with open(ruta, "r", encoding="utf-8") as archivo:
+                    contenido = archivo.read()
+                # Quita comentarios antes de dividir para que las directivas CREATE DATABASE/USE
+                # se reconozcan aunque el archivo las documente con encabezados SQL.
+                contenido = re.sub(r"(?m)^[ \t]*--.*(?:\r?\n|$)", "", contenido)
+                with self._cursor() as cur:
+                    for raw in contenido.split(";"):
+                        sentencia = raw.strip()
+                        if not sentencia:
+                            continue
+                        if sentencia.upper().startswith(("CREATE DATABASE", "USE ")):
+                            continue
+                        cur.execute(sentencia)
+                self._schema_listo = True
+                registrar_evento("INFO", "[MariaDB] Esquema verificado/actualizado automáticamente.")
+                return True
+            except Exception as e:
+                registrar_evento("ERROR", f"[MariaDB] No se pudo crear/actualizar el esquema: {e}")
+                return False
+
     def inicializar_tablas_desde_json(self, ruta_json: str):
         """Migra automáticamente el catálogo JSON a MariaDB si la BD está vacía."""
+        with self._migracion_lock:
+            return self._migrar_json_si_vacia(ruta_json)
+
+    def _migrar_json_si_vacia(self, ruta_json: str):
         if not self.asegurar_conexion():
             return False
 

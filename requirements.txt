@@ -2,3 +2,4 @@
 Pillow>=10.0  # fotos en la app de escritorio
 Flask>=3.0       # solo para la versión web (web_app.py)
 PyMySQL>=1.1.1
+cryptography>=42.0  # certificado HTTPS local automático

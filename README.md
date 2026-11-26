@@ -94,23 +94,19 @@ Sistema de escritorio desarrollado en **Python** con interfaz gráfica en **Tkin
    ```
    Escritorio y web usan MariaDB como fuente principal. `data/tienda_mt.json` se conserva únicamente como respaldo; si MariaDB no está disponible, la aplicación se detiene y no cambia a JSON.
 
-### Preparar MariaDB (requerido)
+### Configurar MariaDB (requerido)
 
 1. Con MariaDB iniciado, abre el monitor usando la ruta instalada en tu equipo:
    ```powershell
    & "C:\Program Files\MariaDB 13.1\bin\mysql.exe" -u root -p
    ```
-2. Dentro del monitor crea las tablas del proyecto y verifica que aparezcan:
+2. Dentro del monitor crea la base de datos si hace falta y crea un usuario dedicado:
    ```sql
-   source C:/Users/Camar/Downloads/mt_tienda_gui/database_schema.sql;
-   SHOW TABLES;
-   SELECT COUNT(*) FROM productos;
-   ```
-   Crea un usuario dedicado para la aplicación (elige una contraseña propia):
-   ```sql
+   CREATE DATABASE IF NOT EXISTS tienda_mt CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    CREATE USER 'mt_app'@'localhost' IDENTIFIED BY 'PON_AQUI_UNA_CLAVE_LARGA';
-   GRANT SELECT, INSERT, UPDATE, DELETE ON tienda_mt.* TO 'mt_app'@'localhost';
+   GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, REFERENCES ON tienda_mt.* TO 'mt_app'@'localhost';
    ```
+   No ejecutes el esquema a mano: al iniciar, la aplicación crea/actualiza las tablas. Para ese paso automático, el usuario necesita permisos `CREATE` y `ALTER`.
 3. Para ejecutar la tienda, configura las variables en la misma ventana de PowerShell con esa contraseña:
    ```powershell
    $env:DB_HOST = "localhost"
@@ -127,16 +123,14 @@ Atajos de la app de escritorio: `Ctrl+1…4` cambia de pestaña, `F5` actualiza,
 
 ### HTTPS y protección de cuentas
 
-La versión web activa HTTPS cuando se configuran un certificado TLS y su clave privada. En PowerShell:
+HTTPS se prepara automáticamente en el primer inicio. Si no indicas certificado, la tienda genera uno local para `localhost` y `127.0.0.1` en `data/tls/`; no configures `MT_SSL_CERT` ni `MT_SSL_KEY` para este modo. Inicia con:
 
 ```powershell
-$env:MT_SSL_CERT = "C:\certificados\tienda.crt"
-$env:MT_SSL_KEY = "C:\certificados\tienda.key"
 $env:MT_SELLER_PASSWORD = "usa-una-frase-larga-y-unica"
 python web_app.py
 ```
 
-Con HTTPS, el puerto predeterminado es 443 y la dirección es `https://localhost`. Para usar `--lan`, el certificado debe corresponder al nombre o IP con que se conectan los otros dispositivos. Usa un certificado emitido para ese nombre; los certificados autofirmados sirven para desarrollo local, pero el navegador mostrará una advertencia. Mantén la clave privada fuera del repositorio. Si TLS termina en un proxy inverso de confianza, configura también `MT_TRUSTED_PROXY=1` y `MT_SECURE_COOKIES=1`.
+Abre `https://127.0.0.1` o `https://localhost`. El navegador mostrará una advertencia la primera vez porque el certificado local no pertenece a una autoridad pública; es esperable para uso local. Si luego cuentas con un certificado real, puedes indicar sus rutas con `MT_SSL_CERT` y `MT_SSL_KEY`; si las rutas no existen, la aplicación vuelve automáticamente al certificado local. Para usar `--lan`, configura un certificado emitido para el nombre o IP con que se conectarán otros dispositivos. Si TLS termina en un proxy inverso de confianza, configura también `MT_TRUSTED_PROXY=1`.
 
 Las contraseñas nuevas deben tener de 12 a 128 caracteres. El vendedor inicial solo se crea si `MT_SELLER_PASSWORD` está configurada con una contraseña de esa longitud; los compradores pueden registrarse desde la tienda. Para reemplazar las contraseñas de demostración de cuentas existentes, configura `MT_SELLER_PASSWORD` y/o `MT_BUYER_PASSWORD` con contraseñas nuevas de al menos 12 caracteres y reinicia la aplicación. Los intentos fallidos de inicio de sesión se bloquean durante 15 minutos después de cinco fallos para la misma cuenta y dirección IP.
 

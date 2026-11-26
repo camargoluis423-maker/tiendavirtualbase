@@ -16,4 +16,5 @@ ticket_mt_*.txt
 # Datos locales y generados
 exports/
 data/.secret_key
+data/tls/
 data/*.corrupto

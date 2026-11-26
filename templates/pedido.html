@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono_ui %}
+{% block titulo %}Pedido #{{ ped.id }}{% endblock %}
+{% block contenido %}
+<section class="exito reveal">
+  <div class="exito-ico" aria-hidden="true">{{ icono_ui('check') }}</div>
+  <div>
+    <h1>&iexcl;Compra registrada con éxito!</h1>
+    <p>Pedido <b>#{{ ped.id }}</b> · Total <b>{{ ped.total|dinero }}</b> · Pago: {{ ped.pago }} · Estado: <span class="estado-badge">{{ ped.estado }}</span>{% if ped.get('puntos_ganados') %} · +{{ ped.puntos_ganados|dinero }} en puntos{% endif %}</p>
+  </div>
+</section>
+
+<section class="panel reveal" style="margin-bottom:18px">
+  <div class="pedido-tl-grid">
+    <div>
+      <h2 style="margin-top:0">Seguimiento del pedido</h2>
+      {% set pasos_est = ['Pendiente', 'Preparando', 'Enviado', 'Entregado'] %}
+      {% set hist_map = {} %}
+      {% for h in ped.get('historial_estados', []) %}{% set _ = hist_map.update({h.estado: h.fecha}) %}{% endfor %}
+      {% set idx_actual = pasos_est.index(ped.estado) if ped.estado in pasos_est else -1 %}
+      <ol class="timeline">
+        {% for st in pasos_est %}
+        {% set hecho = (idx_actual >= loop.index0) or (st in hist_map) %}
+        <li class="{{ 'on' if hecho }} {{ 'actual' if ped.estado == st }}">
+          <span class="tl-dot">{{ loop.index }}</span>
+          <div>
+            <b>{{ st }}</b>
+            <small>{{ hist_map.get(st, ped.fecha if loop.index0 == 0 else 'En espera') }}</small>
+          </div>
+        </li>
+        {% endfor %}
+        {% if ped.estado == 'Cancelado' %}
+        <li class="cancelado">
+          <span class="tl-dot">&times;</span>
+          <div><b>Cancelado</b><small>{{ hist_map.get('Cancelado', ped.fecha) }}</small></div>
+        </li>
+        {% endif %}
+      </ol>
+    </div>
+    <div class="qr-box" style="margin-top:0">
+      <img src="{{ url_for('qr_pedido', pid=ped.id) }}" alt="QR Pedido #{{ ped.id }}" width="110" height="110">
+      <div>
+        <b>QR para recoger en sucursal</b>
+        <p class="suave" style="margin:4px 0 0;font-size:.82rem">Presenta este código en sucursal M&amp;T para validar tu pedido #{{ ped.id }} rápidamente.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="ticket-wrap reveal">
+  <div class="ticket" id="ticketContenido">{{ ticket }}</div>
+</div>
+
+<div class="pedido-acciones">
+  <a class="btn primario btn-con-ico" href="{{ url_for('pedido_ticket', pid=ped.id) }}">
+    {{ icono_ui('download') }}
+    <span>Descargar ticket (.txt)</span>
+  </a>
+  <button type="button" class="btn btn-con-ico" id="btnCopiarTicket">
+    {{ icono_ui('copy') }}
+    <span>Copiar ticket</span>
+  </button>
+  <a class="btn" href="{{ url_for('index') }}">Seguir comprando</a>
+</div>
+{% endblock %}

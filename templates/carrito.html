@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono, icono_ui %}
+{% block titulo %}Carrito{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <h1 class="titulo">Tu carrito</h1>
+    <p class="suave">Revisa tus artículos, selecciona tu perfil de descuento y finaliza tu pedido.</p>
+  </div>
+  <ol class="pasos" aria-label="Progreso de compra">
+    <li class="on"><span>1</span>Carrito</li>
+    <li class="{{ 'on' if items }}"><span>2</span>Perfil</li>
+    <li><span>3</span>Pago</li>
+    <li><span>4</span>Comprobante</li>
+  </ol>
+</div>
+
+{% if not items %}
+  <div class="panel vacio reveal">
+    <b>&#9635;</b>
+    <p>Tu carrito está vacío por ahora.</p>
+    <a class="btn primario" href="{{ url_for('index') }}">Explorar el catálogo</a>
+  </div>
+{% else %}
+<div class="dos-col">
+  <section class="panel reveal">
+    <div class="panel-cab">
+      <h2>Artículos ({{ items|sum(attribute='cantidad') }})</h2>
+      <a class="ver-todo" href="{{ url_for('index') }}#catalogo">+ Seguir agregando</a>
+    </div>
+    {% for it in items %}{% set p = productos[it.producto_id] %}{% set est = estilo_cat(it.categoria) %}{% set sp = specs_de(p) %}
+    <div class="linea">
+      <div class="mini-foto" style="--c:{{ est.color }}">
+        {% if p.foto %}<img src="{{ url_for('foto', nombre=p.foto) }}" alt="{{ it.nombre }}">{% else %}{{ icono(it.categoria) }}{% endif %}
+      </div>
+      <div>
+        <a class="linea-nombre" href="{{ url_for('producto_detalle', pid=it.producto_id) }}"><b>{{ it.nombre }}</b></a>
+        <div class="suave">{{ sp.tipo }} · {{ it.precio|dinero }} c/u · Máx. {{ p.stock }} disp.</div>
+        <div class="cantidad">
+          <form method="post" action="{{ url_for('carrito_actualizar') }}">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="pid" value="{{ it.producto_id }}">
+            <input type="hidden" name="accion" value="menos">
+            <button class="btn mini" aria-label="Quitar uno">&minus;</button>
+          </form>
+          <b class="cant-num">{{ it.cantidad }}</b>
+          <form method="post" action="{{ url_for('carrito_actualizar') }}">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="pid" value="{{ it.producto_id }}">
+            <input type="hidden" name="accion" value="mas">
+            <button class="btn mini" aria-label="Agregar uno" {% if it.cantidad >= p.stock %}disabled{% endif %}>+</button>
+          </form>
+          <form method="post" action="{{ url_for('carrito_actualizar') }}">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="pid" value="{{ it.producto_id }}">
+            <input type="hidden" name="accion" value="quitar">
+            <button class="btn mini peligro">Quitar</button>
+          </form>
+        </div>
+      </div>
+      <div class="importe">
+        <span>{{ it.importe|dinero }}</span>
+        <small class="suave">+ IVA</small>
+      </div>
+    </div>
+    {% endfor %}
+    <form method="post" action="{{ url_for('carrito_vaciar') }}" class="vaciar-wrap">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn peligro mini">Vaciar carrito</button>
+    </form>
+  </section>
+
+  <aside class="panel reveal">
+    <h2>Resumen y pago</h2>
+    <div class="envio-prog-box">
+      <div class="envio-prog-txt">
+        {% if envio_faltante <= 0 %}
+          <span>&#127881; <b>¡Ya tienes envío gratis!</b> en Tepeaca y región</span>
+        {% else %}
+          <span>&#128666; Te faltan <b>{{ envio_faltante|dinero }}</b> para <b>envío gratis</b></span>
+        {% endif %}
+      </div>
+      <div class="barra-stock"><span style="width:{{ envio_pct }}%"></span></div>
+    </div>
+    {% if usuario %}
+      <div class="auth-carrito-ok">Conectado como <b>{{ usuario.nombre }}</b> ({{ usuario.rol|capitalize }})</div>
+    {% else %}
+      <div class="auth-carrito-tip">
+        ¿Tienes cuenta? <a href="{{ url_for('login', rol='comprador', next=url_for('carrito')) }}"><b>Inicia sesión como comprador</b></a> para guardar tu historial de pedidos.
+      </div>
+    {% endif %}
+    <p class="aviso-pago">{{ PAGO_NOTA }}</p>
+
+    <form method="post" action="{{ url_for('carrito_cupon') }}" class="cupon-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      {% if cupon %}
+        <input type="hidden" name="accion" value="quitar">
+        <span class="cupon-ok">&#127991; Cupón <b>{{ cupon.codigo }}</b> (−{{ cupon.pct }}%)</span>
+        <button type="submit" class="btn mini">Quitar</button>
+      {% else %}
+        <input type="text" name="codigo" placeholder="¿Tienes un cupón? (REGRESO10)" maxlength="20">
+        <button type="submit" class="btn mini primario">Aplicar</button>
+      {% endif %}
+    </form>
+
+    {% if puntos_disp > 0 %}
+    <form method="post" action="{{ url_for('carrito_puntos') }}" class="puntos-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="usar" value="{{ '0' if usar_puntos else '1' }}">
+      <span>&#128142; Puntos: <b>{{ puntos_disp|dinero }}</b></span>
+      <button type="submit" class="btn mini {{ 'primario' if usar_puntos }}">{{ 'Usando saldo ✓' if usar_puntos else 'Usar saldo' }}</button>
+    </form>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('pagar') }}" id="pago">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="campo">Cliente / organización
+        <input name="cliente" maxlength="80" value="{{ cliente }}" placeholder="Cliente Regional">
+      </label>
+      <label class="campo">Perfil (aplica descuento)
+        <select name="perfil" onchange="this.form.action='{{ url_for('carrito_perfil') }}'; this.form.submit();">
+          {% for clave, etiqueta in perfiles %}
+            <option value="{{ clave }}" {{ 'selected' if clave == perfil }}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="campo">Método de pago
+        <select name="pago">
+          {% for m in metodos %}<option>{{ m }}</option>{% endfor %}
+        </select>
+      </label>
+      <div class="totales">
+        <span class="suave">Subtotal</span><span>{{ subtotal|dinero }}</span>
+        <span class="suave">Descuento / Cupón</span>
+        <span class="{{ 'ahorro' if descuento }}">{% if descuento %}&minus;{{ descuento|dinero }}{% else %}{{ 0|dinero }}{% endif %}</span>
+        <span class="suave">IVA ({{ TASA_IVA_PCT }}%)</span><span>{{ iva|dinero }}</span>
+        <span class="gran">Total</span><span class="gran">{{ total|dinero }}</span>
+      </div>
+      <button class="btn primario bloque btn-con-ico">
+        {{ icono_ui('lock') }}
+        <span>Continuar al pago seguro</span>
+      </button>
+      {% if whatsapp_url %}
+        <a class="btn bloque wa-btn" href="{{ whatsapp_url }}" target="_blank" rel="noopener" style="margin-top:8px">
+          Pedir por WhatsApp &rarr;
+        </a>
+      {% endif %}
+    </form>
+  </aside>
+</div>
+{% if tambien_llevaron %}
+<h2 class="sub reveal">Los que compraron esto también llevaron…</h2>
+<div class="rejilla">{% for p in tambien_llevaron %}{% include "_tarjeta.html" %}{% endfor %}</div>
+{% endif %}
+{% endif %}
+{% endblock %}

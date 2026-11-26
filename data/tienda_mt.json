@@ -1,0 +1,185 @@
+{
+  "next_prod_id": 20,
+  "next_pedido_id": 1,
+  "productos": [
+    {
+      "id": 1,
+      "nombre": "Laptop Workstation 16GB RAM / SSD 512GB",
+      "categoria": "Computadoras",
+      "precio": 17500.0,
+      "stock": 4,
+      "foto": "prod_84907017_Multimedia.jpg"
+    },
+    {
+      "id": 2,
+      "nombre": "Licencia Suite CAD y Simulación (1 año)",
+      "categoria": "Software",
+      "precio": 2800.0,
+      "stock": 5,
+      "foto": "prod_4b88949f_Multimedia_6.jpg"
+    },
+    {
+      "id": 3,
+      "nombre": "Silla Ergonómica de Malla Alta Densidad",
+      "categoria": "Mobiliario",
+      "precio": 3950.0,
+      "stock": 1,
+      "foto": "prod_5f2766f5_Multimedia_7.jpg"
+    },
+    {
+      "id": 4,
+      "nombre": "Escritorio en L para Estación Dual",
+      "categoria": "Mobiliario",
+      "precio": 4600.0,
+      "stock": 0,
+      "foto": "prod_66afe698_Multimedia_9.jpg"
+    },
+    {
+      "id": 5,
+      "nombre": "Celular Samsumg A156",
+      "categoria": "Equipo",
+      "precio": 7000.0,
+      "stock": 8,
+      "foto": "prod_1795537093_Reto.jpeg"
+    },
+    {
+      "id": 6,
+      "nombre": "Computadora de Oficina Ryzen 5 · 16GB · SSD 512GB",
+      "categoria": "Computadoras",
+      "precio": 11900.0,
+      "stock": 6,
+      "foto": "prod_cb34d902_Multimedia_1.jpg"
+    },
+    {
+      "id": 7,
+      "nombre": "All-in-One 24\" Core i5 · 16GB · SSD 512GB",
+      "categoria": "Computadoras",
+      "precio": 14500.0,
+      "stock": 3,
+      "foto": "prod_a4588f3b_Multimedia_2.jpg"
+    },
+    {
+      "id": 8,
+      "nombre": "Laptop Estudiante 14\" Core i3 · 8GB · SSD 256GB",
+      "categoria": "Computadoras",
+      "precio": 9800.0,
+      "stock": 9,
+      "foto": "prod_82650f7f_Multimedia_3.jpg"
+    },
+    {
+      "id": 9,
+      "nombre": "PC Gamer Ryzen 5 · RTX 4060 · 16GB · SSD 1TB",
+      "categoria": "Compus Gaming",
+      "precio": 24900.0,
+      "stock": 4,
+      "foto": "prod_2f01ebe9_Multimedia_4.jpg"
+    },
+    {
+      "id": 10,
+      "nombre": "PC Gamer Core i7 · RTX 4070 Super · 32GB · SSD 1TB",
+      "categoria": "Compus Gaming",
+      "precio": 39900.0,
+      "stock": 2,
+      "foto": "prod_ee01bf13_Multimedia_10.jpg"
+    },
+    {
+      "id": 11,
+      "nombre": "Laptop Gamer 15.6\" 144Hz · RTX 4050 · 16GB",
+      "categoria": "Compus Gaming",
+      "precio": 22500.0,
+      "stock": 0,
+      "foto": "prod_97a87d7d_Multimedia_11.jpg"
+    },
+    {
+      "id": 12,
+      "nombre": "Tarjeta de Video RTX 4060 8GB",
+      "categoria": "Componentes",
+      "precio": 7800.0,
+      "stock": 5,
+      "foto": "prod_50f037fd_Multimedia_13.jpg"
+    },
+    {
+      "id": 13,
+      "nombre": "Memoria RAM DDR5 16GB 5600MHz",
+      "categoria": "Componentes",
+      "precio": 1150.0,
+      "stock": 11,
+      "foto": "prod_7c15b18f_Multimedia_14.jpg"
+    },
+    {
+      "id": 14,
+      "nombre": "SSD NVMe 1TB PCIe 4.0",
+      "categoria": "Componentes",
+      "precio": 1350.0,
+      "stock": 10,
+      "foto": "prod_057e19d9_Multimedia_15.jpg"
+    },
+    {
+      "id": 15,
+      "nombre": "Procesador Ryzen 5 7600",
+      "categoria": "Componentes",
+      "precio": 4900.0,
+      "stock": 2,
+      "foto": "prod_d6e514e2_Multimedia_17.jpg"
+    },
+    {
+      "id": 16,
+      "nombre": "Fuente de Poder 650W 80+ Bronze",
+      "categoria": "Componentes",
+      "precio": 1250.0,
+      "stock": 7,
+      "foto": "prod_7d5de52b_Multimedia_18.jpg"
+    },
+    {
+      "id": 17,
+      "nombre": "Gabinete ATX con Ventiladores RGB",
+      "categoria": "Componentes",
+      "precio": 1450.0,
+      "stock": 6,
+      "foto": "prod_873d36c1_Multimedia_19.jpg"
+    },
+    {
+      "id": 18,
+      "nombre": "Leonovo Q15",
+      "categoria": "Computadoras",
+      "precio": 18500.0,
+      "stock": 4,
+      "foto": "prod_12047a83_lenovo.webp",
+      "especs": "intel core i5 , rtx 5050, refrigeracion por aire"
+    },
+    {
+      "id": 19,
+      "nombre": "ASUS TUF A15",
+      "categoria": "Computadoras",
+      "precio": 18480.0,
+      "stock": 5,
+      "foto": "prod_40a60841_pttyqhukolhjrndv.png",
+      "descuento": 25.0,
+      "descuentos_perfil": {
+        "Estudiante": 35.0,
+        "Escuela": 4.0,
+        "Empresa": 12.0
+      },
+      "especs": "laptop con buena grafica y procesador , integra una  ryzen7 y una rtx 5050"
+    }
+  ],
+  "pedidos": [],
+  "usuarios": [
+    {
+      "usuario": "vendedor@mtcom1.mx",
+      "alias": "vendedor",
+      "nombre": "Administrador M&T",
+      "rol": "vendedor",
+      "perfil": "General",
+      "password_hash": "scrypt:32768:8:1$povbI2Z9wqtcKTBE$2a196ec4f856fb4de1bde3dd62ab19ccaa5479e9616dc6733bd1ebd8bc6e609978677c5daa9c501dc68074a109bb7e99b549eb4cbec0b203a1d572c40df45889"
+    },
+    {
+      "usuario": "comprador@mtcom1.mx",
+      "alias": "comprador",
+      "nombre": "Cliente Regional",
+      "rol": "comprador",
+      "perfil": "Estudiante",
+      "password_hash": "scrypt:32768:8:1$Dme5KbRchkIC8Svd$31f326a7f1f0ba51732e846e4b768ca11cb6d89af7196be24617d4b03198f71403d64082ff1d9ae0ce1478a153ad9b61a9122c376d04233ee1222f20ab9d6ad9"
+    }
+  ]
+}

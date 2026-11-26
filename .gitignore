@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+.venv/
+env/
+venv/
+*.tmp
+*.bak
+
+# Archivos generados
+cotizacion_mt_*.txt
+ticket_mt_*.txt
+
+# Datos locales y generados
+exports/
+data/.secret_key
+data/*.corrupto

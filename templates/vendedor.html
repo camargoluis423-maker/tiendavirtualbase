@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono_ui %}
+{% block titulo %}Panel del Vendedor{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <span class="comp-kicker">Modo Vendedor · {{ usuario.nombre }}</span>
+    <h1 class="titulo" style="margin-top:6px">Panel de Control Comercial</h1>
+    <p class="suave">Administra pedidos, cambia estados con control de stock y actualiza el inventario en tiempo real.</p>
+  </div>
+  <div class="vista-switch" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    <a class="{{ 'on' if tab == 'pedidos' }}" href="{{ url_for('vendedor_panel', tab='pedidos') }}">Pedidos ({{ total_pedidos }})</a>
+    <a class="{{ 'on' if tab == 'inventario' }}" href="{{ url_for('vendedor_panel', tab='inventario') }}">Inventario y Catálogo ({{ stock_resumen.total }})</a>
+    <a class="btn mini primario" href="{{ url_for('vendedor_sucursal') }}">Modo Sucursal (POS)</a>
+    <a class="btn mini" href="{{ url_for('vendedor_exportar_pedidos') }}">Exportar Pedidos CSV</a>
+    <a class="btn mini" href="{{ url_for('vendedor_exportar_productos') }}">Exportar Productos CSV</a>
+  </div>
+</div>
+
+{% if alertas_stock %}
+<section class="panel reveal alertas-panel" style="margin-top:16px">
+  <div class="dist-cab">
+    <h2>&#9888; Alertas Inteligentes de Inventario ({{ alertas_stock|length }})</h2>
+    <span class="suave">Stock bajo, agotados y proyección de días restantes según ventas reales</span>
+  </div>
+  <div class="alertas-lista">
+    {% for al in alertas_stock %}
+    <div class="alerta-item {{ al.nivel }}">
+      <div>
+        <b>{{ al.nombre }}</b>
+        <span>
+          {% if al.nivel == 'agotado' %}
+            Agotado (0 uds.)
+          {% else %}
+            Quedan {{ al.stock }} uds.
+          {% endif %}
+          {% if al.dias_restantes is not none %}
+            · Al ritmo de ventas se agota en ~<b>{{ al.dias_restantes }} días</b>
+          {% endif %}
+        </span>
+      </div>
+      <form method="post" action="{{ url_for('vendedor_producto_stock') }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="pid" value="{{ al.id }}">
+        <input type="hidden" name="accion" value="sumar">
+        <input type="hidden" name="cantidad" value="5">
+        <button class="btn mini primario">Reabastecer +5</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="kpis-grid reveal">
+  <div class="kpi-card" style="--k:#0f766e">
+    <span>Ventas netas</span>
+    <b>{{ ventas_netas|dinero }}</b>
+    <small>Excluye {{ cancelados }} cancelado(s)</small>
+  </div>
+  <div class="kpi-card" style="--k:#6366f1">
+    <span>Pedidos vigentes</span>
+    <b>{{ pedidos_vigentes }}</b>
+    <small>De {{ total_pedidos }} registrados</small>
+  </div>
+  <div class="kpi-card" style="--k:#f59e0b">
+    <span>En proceso</span>
+    <b>{{ en_proceso }}</b>
+    <small>Pendientes y preparando</small>
+  </div>
+  <div class="kpi-card" style="--k:#0ea5e9">
+    <span>Ticket promedio</span>
+    <b>{{ ticket_promedio|dinero }}</b>
+    <small>Por pedido vigente</small>
+  </div>
+</section>
+
+{% if tab == 'pedidos' %}
+<section class="panel reveal" style="margin-top:16px">
+  <div class="dist-cab">
+    <h2>Gráficas Reales de Ventas y Ranking</h2>
+    <span class="suave">Promedio diario real: <b>{{ promedio_diario_real|dinero }}</b> · Estimado 30 días: <b style="color:var(--mt-blue-dark)">{{ estimado_mensual|dinero }}</b></span>
+  </div>
+  <div class="dos-col" style="margin:10px 0 0;grid-template-columns:1.25fr .75fr">
+    <div>
+      <canvas id="ventasChartCanvas" height="140" data-labels='{{ graf_dias_labels|tojson }}' data-values='{{ graf_dias_vals|tojson }}'></canvas>
+      <div class="graf-leyenda" style="margin-top:12px">
+        <span><i style="background:var(--mt-green)"></i>Ventas reales por categoría</span>
+      </div>
+      <div class="graf-barras">
+        {% for g in grafico_datos %}
+        <div class="graf-col">
+          <div class="graf-vals"><small>{{ g.real|dinero }}</small></div>
+          <div class="graf-bars-pair">
+            <div class="graf-bar real" style="height:{{ [g.pct_real, 4]|max }}%;background:{{ g.color }}"></div>
+          </div>
+          <span class="graf-lbl">{{ g.categoria }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="panel" style="padding:14px;background:#f8fafc">
+      <h3 style="margin-top:0;font-size:1rem">&#127942; Ranking: Producto más vendido</h3>
+      {% if not ranking_vendidos %}
+        <p class="suave">Aún no hay ventas registradas para generar el ranking.</p>
+      {% else %}
+        <ol style="margin:0;padding-left:18px;display:grid;gap:8px;font-size:.86rem">
+          {% for rk in ranking_vendidos %}
+            <li>
+              <b>{{ rk.nombre }}</b><br>
+              <span class="suave">{{ rk.unidades }} uds. vendidas · <b>{{ rk.ingresos|dinero }}</b></span>
+            </li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+    </div>
+  </div>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+
+<section class="panel reveal" style="margin-top:16px">
+  <div class="dist-cab">
+    <h2>Distribución por estado</h2>
+    <span class="suave">{{ total_pedidos }} pedido(s) en total</span>
+  </div>
+  {% if total_pedidos > 0 %}
+    <div class="dist-barra" role="img" aria-label="Distribución de pedidos por estado">
+      {% for est in ESTADOS_PEDIDO %}
+        {% set cnt = distribucion.get(est, 0) %}
+        {% if cnt > 0 %}
+          <span style="width:{{ (cnt * 100 / total_pedidos)|round(2) }}%;background:{{ ESTADO_COLORES.get(est, '#64748b') }}" title="{{ est }}: {{ cnt }}"></span>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="dist-leyenda">
+      {% for est in ESTADOS_PEDIDO %}
+        <span><i style="background:{{ ESTADO_COLORES.get(est, '#64748b') }}"></i>{{ est }} <b>{{ distribucion.get(est, 0) }}</b></span>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="suave">Aún no hay pedidos registrados.</p>
+  {% endif %}
+</section>
+
+<section class="panel reveal" style="margin-top:18px;margin-bottom:36px">
+  <div class="comp-panel-top">
+    <h2>Pedidos recibidos</h2>
+    <form class="vend-filtros" method="get" action="{{ url_for('vendedor_panel') }}">
+      <input type="hidden" name="tab" value="pedidos">
+      <select name="estado" onchange="this.form.submit()" aria-label="Filtrar por estado">
+        <option value="Todos" {{ 'selected' if estado_filtro == 'Todos' }}>Todos los estados</option>
+        {% for est in ESTADOS_PEDIDO %}
+          <option value="{{ est }}" {{ 'selected' if estado_filtro == est }}>{{ est }}</option>
+        {% endfor %}
+      </select>
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar cliente o #ID…">
+      <button class="btn primario mini">Filtrar</button>
+      {% if q or estado_filtro != 'Todos' %}
+        <a class="btn mini" href="{{ url_for('vendedor_panel') }}">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="tabla-scroll">
+    <table class="tabla-comp">
+      <thead>
+        <tr>
+          <th>#Pedido</th>
+          <th>Fecha</th>
+          <th>Cliente / Cuenta</th>
+          <th>Detalle</th>
+          <th class="num">Total</th>
+          <th>Estado actual</th>
+          <th class="acc">Gestionar estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pedidos %}
+        {% set col = ESTADO_COLORES.get(p.estado, '#64748b') %}
+        <tr class="comp-row">
+          <td><b>#{{ p.id }}</b></td>
+          <td class="suave">{{ p.fecha }}</td>
+          <td>
+            <b>{{ p.cliente }}</b>
+            <div class="comp-interfaz">{{ p.perfil }} · {{ p.pago }}{% if p.get('usuario') %} · {{ p.usuario }}{% endif %}</div>
+          </td>
+          <td>
+            <div class="vend-items">
+              {% for it in p['items'] %}
+                <span>{{ it.cantidad }}× {{ it.nombre }}</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td class="num"><b>{{ p.total|dinero }}</b></td>
+          <td>
+            <span class="estado-pill" style="--est:{{ col }}"><i></i>{{ p.estado }}</span>
+            {% if p.get('stock_reintegrado') %}<div class="comp-interfaz">Stock reintegrado</div>{% endif %}
+          </td>
+          <td class="acc">
+            <div class="vend-acciones">
+              <form method="post" action="{{ url_for('vendedor_pedido_estado') }}" class="vend-estado-form">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <input type="hidden" name="pid" value="{{ p.id }}">
+                <input type="hidden" name="estado_filtro" value="{{ estado_filtro }}">
+                <input type="hidden" name="reintegrar" value="1">
+                <select name="estado" aria-label="Nuevo estado para pedido {{ p.id }}">
+                  {% for est in ESTADOS_PEDIDO %}
+                    <option value="{{ est }}" {{ 'selected' if est == p.estado }}>{{ est }}</option>
+                  {% endfor %}
+                </select>
+                <button class="btn primario mini">Guardar</button>
+              </form>
+              <a class="btn mini btn-ficha" href="{{ url_for('pedido', pid=p.id) }}">Ticket</a>
+              <button type="button" class="btn mini" data-ver-pedido='{{ p|tojson }}'>Detalle</button>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="comp-empty">No hay pedidos que coincidan con el filtro.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% else %}
+<section class="kpis-grid reveal" style="margin-top:16px">
+  <div class="kpi-card" style="--k:#6366f1"><span>Total catálogo</span><b>{{ stock_resumen.total }}</b><small>Artículos activos</small></div>
+  <div class="kpi-card" style="--k:#16a34a"><span>Disponibles</span><b>{{ stock_resumen.disponibles }}</b><small>Stock saludable</small></div>
+  <div class="kpi-card" style="--k:#f59e0b"><span>Stock bajo</span><b>{{ stock_resumen.bajo }}</b><small>Requieren resurtido pronto</small></div>
+  <div class="kpi-card" style="--k:#dc2626"><span>Agotados</span><b>{{ stock_resumen.agotados }}</b><small>Sin existencias</small></div>
+</section>
+
+<div class="dos-col" style="margin-top:18px">
+  <section class="panel reveal">
+    <h2>Catálogo y Gestión de Imágenes</h2>
+    <p class="suave" style="margin-top:0">Ajusta existencias o sube imágenes personalizadas para cada producto existente.</p>
+    <div class="tabla-scroll">
+      <table class="tabla-comp">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Foto</th>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th class="num">Precio</th>
+            <th>Stock</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pr in productos %}
+          {% set niv = nivel_stock(pr.stock) %}
+          <tr>
+            <td>#{{ pr.id }}</td>
+            <td>
+              <div class="vend-foto-box">
+                {% if pr.foto %}
+                  <img src="{{ url_for('foto', nombre=pr.foto) }}" alt="{{ pr.nombre }}" class="vend-thumb">
+                {% else %}
+                  <div class="vend-thumb-placeholder">Sin foto</div>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              <a class="comp-nombre" href="{{ url_for('producto_detalle', pid=pr.id) }}">{{ pr.nombre }}</a>
+              <form method="post" action="{{ url_for('vendedor_producto_foto') }}" enctype="multipart/form-data" class="vend-foto-form">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <input type="hidden" name="pid" value="{{ pr.id }}">
+                <label class="btn-subir-foto" title="Cambiar o subir imagen">
+                  📷 Subir foto
+                  <input type="file" name="foto" accept="image/*" onchange="this.form.submit()">
+                </label>
+              </form>
+            </td>
+            <td><span class="tipo-pill">{{ pr.categoria }}</span></td>
+            <td class="num">
+              {% if pr.get('descuento') %}
+                <div><b>{{ precio_oferta(pr)|dinero }}</b></div>
+                <small class="suave"><s>{{ pr.precio|dinero }}</s> (−{{ pr.descuento|round|int }}%)</small>
+              {% else %}
+                {{ pr.precio|dinero }}
+              {% endif %}
+            </td>
+            <td>
+              <span class="stock-pill {{ niv }}"><i></i>{{ pr.stock }} uds.</span>
+            </td>
+            <td class="acc">
+              <div class="vend-acciones">
+                {% for n in (1, 5, 10) %}
+                <form method="post" action="{{ url_for('vendedor_producto_stock') }}">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <input type="hidden" name="pid" value="{{ pr.id }}">
+                  <input type="hidden" name="accion" value="sumar">
+                  <input type="hidden" name="cantidad" value="{{ n }}">
+                  <button class="btn mini">+{{ n }}</button>
+                </form>
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="panel reveal">
+    <h2>Agregar producto</h2>
+    <p class="suave" style="margin-top:0">Publica nuevos productos con su imagen, precio y especificaciones en tiempo real.</p>
+    <form method="post" action="{{ url_for('vendedor_producto_nuevo') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="campo">Nombre del producto
+        <input type="text" name="nombre" maxlength="120" required placeholder="Ej. Tarjeta Madre ROG Strix B650-E Gaming">
+      </label>
+      <label class="campo">Categoría
+        <select name="categoria">
+          {% for c in CATEGORIAS %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="campo">Imagen del producto (PNG, JPG, WEBP)
+        <input type="file" name="foto" accept="image/*" class="input-archivo">
+      </label>
+      <label class="campo">Especificaciones técnicas (opcional)
+        <input type="text" name="especs" maxlength="160" placeholder="Ej. Socket AM5 · PCIe 5.0 · DDR5 6400+ · Aura Sync">
+      </label>
+      <label class="campo">Precio sin IVA
+        <input type="number" name="precio" step="0.01" min="0" required placeholder="4890">
+      </label>
+      <label class="campo">Stock inicial
+        <input type="number" name="stock" min="0" value="5" required>
+      </label>
+      <div class="desc-grid">
+        <label class="campo">Oferta general (%)
+          <input type="number" name="descuento" min="0" max="90" step="1" value="0" placeholder="0">
+        </label>
+        <label class="campo">Estudiantes (%)
+          <input type="number" name="desc_estudiante" min="0" max="90" step="1" value="0" placeholder="Ej. 10">
+        </label>
+        <label class="campo">Escuelas (%)
+          <input type="number" name="desc_escuela" min="0" max="90" step="1" value="0" placeholder="Ej. 12">
+        </label>
+        <label class="campo">Empresas (%)
+          <input type="number" name="desc_empresa" min="0" max="90" step="1" value="0" placeholder="Ej. 8">
+        </label>
+      </div>
+      <button class="btn primario bloque">⚡ Publicar producto</button>
+    </form>
+  </aside>
+</div>
+{% endif %}
+
+{# Modal de Detalle de Compra para el Vendedor #}
+<div class="qv-backdrop" id="pedidoDetalleModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pdTitulo">
+  <div class="qv-dialog">
+    <button type="button" class="qv-close" id="pdClose" aria-label="Cerrar detalle">&times;</button>
+    <h2 id="pdTitulo" style="margin-top:0">Detalle de compra</h2>
+    <div id="pdMeta" class="pd-meta"></div>
+    <div id="pdPago" class="pd-pago"></div>
+    <div class="tabla-scroll" style="margin:12px 0">
+      <table class="tabla-comp" style="min-width:100%">
+        <thead><tr><th>Producto</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Importe</th></tr></thead>
+        <tbody id="pdItems"></tbody>
+      </table>
+    </div>
+    <div id="pdTotales" class="totales" style="margin-bottom:0"></div>
+  </div>
+</div>
+{% endblock %}

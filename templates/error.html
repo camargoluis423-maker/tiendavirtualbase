@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Error {{ e.code }}{% endblock %}
+{% block contenido %}
+<div class="panel vacio reveal" style="margin-top:34px">
+  <b>{{ e.code }}</b>
+  <p>{% if e.code == 404 %}No encontramos la página o el pedido que buscabas.{% elif e.code == 403 %}No tienes permisos para ver esta sección.{% else %}{{ e.description }}{% endif %}</p>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+    <a class="btn primario" href="{{ url_for('index') }}">Volver al catálogo</a>
+    <a class="btn" href="{{ url_for('index') }}#tabla-componentes">Ver tabla de componentes</a>
+  </div>
+</div>
+{% endblock %}

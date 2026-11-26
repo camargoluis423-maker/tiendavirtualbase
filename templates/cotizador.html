@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block titulo %}Cotizador por Lista{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <span class="comp-kicker">Escuelas · Empresas · Proyectos</span>
+    <h1 class="titulo">Cotizador Automático por Lista</h1>
+    <p class="suave">Pega tu lista de requerimientos (ej. "PC para AutoCAD, 5 laptops para escuela") y generamos la cotización con descuento.</p>
+  </div>
+</div>
+
+<div class="dos-col" style="margin-top:18px">
+  <form method="post" action="{{ url_for('cotizador') }}" class="panel reveal">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="campo">Pega tu lista o requerimiento
+      <textarea name="lista" rows="5" required placeholder="Ej: 1 Workstation para AutoCAD, 3 Laptop Estudiante, 2 RAM DDR5">{{ lista_txt }}</textarea>
+    </label>
+    <label class="campo">Perfil de cliente
+      <select name="perfil">
+        {% for clave, etiq in perfiles %}
+          <option value="{{ clave }}" {{ 'selected' if clave == perfil }}>{{ etiq }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="btn primario bloque">Generar cotización</button>
+  </form>
+
+  <section class="panel reveal">
+    <h2>Cotización generada</h2>
+    {% if not items_cot %}
+      <p class="suave">Escribe tus requerimientos a la izquierda para calcular precios, descuentos e IVA automáticamente.</p>
+    {% else %}
+      <div class="tabla-scroll">
+        <table class="tabla-comp" style="min-width:100%">
+          <thead><tr><th>Producto</th><th class="num">Cant.</th><th class="num">Importe</th></tr></thead>
+          <tbody>
+            {% for it in items_cot %}
+            <tr><td>{{ it.nombre }}</td><td class="num">{{ it.cantidad }}</td><td class="num">{{ it.importe|dinero }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="totales" style="margin-top:14px">
+        <span class="suave">Subtotal</span><span>{{ totales_cot.subtotal|dinero }}</span>
+        <span class="suave">Descuento ({{ perfil }})</span><span class="ahorro">&minus;{{ totales_cot.descuento|dinero }}</span>
+        <span class="suave">IVA</span><span>{{ totales_cot.iva|dinero }}</span>
+        <span class="gran">Total estimado</span><span class="gran">{{ totales_cot.total|dinero }}</span>
+      </div>
+      {% if usuario.rol == 'comprador' %}
+      <form method="post" action="{{ url_for('cotizador_agregar') }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="btn primario bloque">Agregar cotización al carrito</button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

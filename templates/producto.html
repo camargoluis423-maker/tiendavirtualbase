@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono, icono_ui %}
+{% block titulo %}{{ prod.nombre }}{% endblock %}
+{% block contenido %}
+{% set est = estilo_cat(prod.categoria) %}{% set nivel = nivel_stock(prod.stock) %}{% set sp = specs_de(prod) %}
+<nav class="migas" aria-label="Ruta de navegación">
+  <a href="{{ url_for('index') }}">Catálogo</a>
+  <span aria-hidden="true">&rsaquo;</span>
+  <a href="{{ url_for('index', cat=prod.categoria) }}#catalogo">{{ prod.categoria }}</a>
+  <span aria-hidden="true">&rsaquo;</span>
+  <span>{{ prod.nombre }}</span>
+</nav>
+
+<section class="detalle reveal" style="--c:{{ est.color }}">
+  <div class="foto" style="--c:{{ est.color }}">
+    {% if prod.foto %}
+      <img src="{{ url_for('foto', nombre=prod.foto) }}" alt="{{ prod.nombre }}">
+    {% else %}
+      {{ icono(prod.categoria) }}
+    {% endif %}
+    <span class="pastilla izq">{{ prod.categoria }}</span>
+    {% if nivel == 'agotado' %}<span class="pastilla der estado rojo">Agotado</span>
+    {% elif nivel == 'bajo' %}<span class="pastilla der estado ambar">&iexcl;Últimas {{ prod.stock }}!</span>{% endif %}
+  </div>
+
+  <div class="detalle-info">
+    <div class="detalle-badges">
+      <span class="pastilla fija">{{ sp.tipo }}</span>
+      <span class="garantia-chip">Garantía {{ sp.garantia }}</span>
+    </div>
+    {% set p_of = precio_oferta(prod) %}
+    <h1>{{ prod.nombre }}</h1>
+    <div class="detalle-precio-caja">
+      {% if prod.get('descuento') %}
+        <div class="suave">Antes: <s>{{ prod.precio|dinero }}</s> · <b style="color:var(--rojo)">&minus;{{ prod.descuento|round|int }}% oferta aplicada</b></div>
+      {% endif %}
+      <div class="precio">{{ p_of|dinero }} <small>+ IVA ({{ TASA_IVA_PCT }}%)</small></div>
+      <div class="suave">Total estimado con IVA (perfil General): <b>{{ (p_of * (1 + TASA_IVA))|dinero }}</b></div>
+    </div>
+
+    <div class="descuentos-preview">
+      {% for perfil_nombre, pct in PERFILES_DESCUENTOS %}
+        {% set p_esp = (prod.get('descuentos_perfil') or {}).get(perfil_nombre) %}
+        {% set pct_final = p_esp if p_esp else pct %}
+        <div>
+          <span>{{ perfil_nombre }} (−{{ pct_final|round|int }}%)</span>
+          <b>{{ (p_of * (1 - pct_final / 100))|dinero }}</b>
+        </div>
+      {% endfor %}
+    </div>
+
+    <p class="aviso-pago">{{ PAGO_NOTA }}</p>
+
+    <div class="detalle-stock">
+      {% if nivel == 'agotado' %}
+        <b class="est rojo">&#9679; Agotado por el momento</b>
+      {% elif nivel == 'bajo' %}
+        <b class="est ambar">&#9679; &iexcl;Últimas {{ prod.stock }} unidades!</b>
+      {% else %}
+        <b class="est verde">&#9679; Disponible</b> · {{ prod.stock }} unidades en inventario
+      {% endif %}
+      {% if en_carrito %}
+        <span class="enc-chip">&#10003; Ya tienes {{ en_carrito }} en tu carrito</span>
+      {% endif %}
+    </div>
+
+    {% if usuario and usuario.rol == 'vendedor' %}
+    <div class="fila-compra">
+      <a class="btn primario btn-con-ico" href="{{ url_for('vendedor_panel', tab='inventario') }}">
+        {{ icono_ui('store') }}
+        <span>Gestionar stock o imagen en Panel</span>
+      </a>
+    </div>
+    {% else %}
+    <form class="fila-compra" method="post" action="{{ url_for('carrito_agregar') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="pid" value="{{ prod.id }}">
+      <input type="hidden" name="volver" value="{{ url_for('producto_detalle', pid=prod.id) }}">
+      <div class="qty-stepper" data-qty-stepper>
+        <button type="button" class="btn mini" data-qty="-1" aria-label="Disminuir cantidad" {% if nivel == 'agotado' %}disabled{% endif %}>&minus;</button>
+        <input type="number" name="cantidad" value="1" min="1" max="{{ [prod.stock, 1]|max }}" aria-label="Cantidad" {% if nivel == 'agotado' %}disabled{% endif %}>
+        <button type="button" class="btn mini" data-qty="1" aria-label="Aumentar cantidad" {% if nivel == 'agotado' %}disabled{% endif %}>+</button>
+      </div>
+      <button class="btn primario btn-con-ico" {% if nivel == 'agotado' %}disabled{% endif %}>
+        {{ icono_ui('cart') }}
+        <span>{% if nivel == 'agotado' %}Sin existencias{% else %}Agregar al carrito{% endif %}</span>
+      </button>
+      <a class="btn" href="{{ url_for('carrito') }}">Ir al carrito</a>
+    </form>
+    {% endif %}
+
+    <div class="ficha-tecnica">
+      <h2>Especificaciones técnicas</h2>
+      <table>
+        <tbody>
+          <tr><th>Categoría</th><td>{{ prod.categoria }} · {{ sp.tipo }}</td></tr>
+          <tr><th>Especificaciones</th><td>{{ sp.especs }}</td></tr>
+          <tr><th>Interfaz / Formato</th><td>{{ sp.interfaz }}</td></tr>
+          <tr><th>Compatibilidad</th><td>{{ sp.compatibilidad }}</td></tr>
+          <tr><th>Garantía</th><td>{{ sp.garantia }}</td></tr>
+        </tbody>
+      </table>
+      <div class="qr-box">
+        <img src="{{ url_for('qr_producto', pid=prod.id) }}" alt="Código QR de {{ prod.nombre }}" width="96" height="96">
+        <div>
+          <b>Código QR del producto</b>
+          <p class="suave" style="margin:2px 0 0;font-size:.8rem">Escanéalo en mostrador o compártelo para abrir esta ficha técnica al instante.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if tambien_llevaron %}
+<h2 class="sub reveal">Los que compraron esto también llevaron…</h2>
+<div class="rejilla">{% for p in tambien_llevaron %}{% include "_tarjeta.html" %}{% endfor %}</div>
+{% endif %}
+
+{% if relacionados %}
+<h2 class="sub reveal">Más en {{ prod.categoria }}</h2>
+<div class="rejilla">{% for p in relacionados %}{% include "_tarjeta.html" %}{% endfor %}</div>
+{% endif %}
+{% endblock %}

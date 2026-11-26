@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono_ui %}
+{% block titulo %}Comparador de productos{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <span class="comp-kicker">Hasta 3 artículos lado a lado</span>
+    <h1 class="titulo">Comparador de Productos</h1>
+    <p class="suave">Compara especificaciones técnicas, precio, garantía y existencias.</p>
+  </div>
+  <a class="btn" href="{{ url_for('index') }}#catalogo">Seguir explorando</a>
+</div>
+
+<section class="panel reveal" style="margin:18px 0 38px">
+  {% if not seleccionados %}
+    <div class="vacio">
+      <b>&#9878;</b>
+      <p>Aún no seleccionas productos para comparar. Usa el botón <b>Comparar</b> en las tarjetas del catálogo.</p>
+      <a class="btn primario" href="{{ url_for('index') }}#catalogo">Ir al catálogo</a>
+    </div>
+  {% else %}
+    <div class="tabla-scroll">
+      <table class="tabla-comp">
+        <thead>
+          <tr>
+            <th>Característica</th>
+            {% for p in seleccionados %}
+              <th>{{ p.nombre }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>Imagen</b></td>
+            {% for p in seleccionados %}
+              <td>
+                {% if p.foto %}<img src="{{ url_for('foto', nombre=p.foto) }}" alt="" style="width:90px;height:70px;object-fit:cover;border-radius:8px">{% else %}—{% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><b>Categoría / Tipo</b></td>
+            {% for p in seleccionados %}{% set sp = specs_de(p) %}
+              <td>{{ p.categoria }} · {{ sp.tipo }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><b>Precio (+ IVA)</b></td>
+            {% for p in seleccionados %}
+              <td><b>{{ precio_oferta(p)|dinero }}</b>{% if p.get('descuento') %} <s class="suave">{{ p.precio|dinero }}</s>{% endif %}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><b>Stock</b></td>
+            {% for p in seleccionados %}
+              <td>{{ 'Agotado' if p.stock <= 0 else p.stock ~ ' disponibles' }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><b>Especificaciones</b></td>
+            {% for p in seleccionados %}{% set sp = specs_de(p) %}
+              <td>{{ sp.especs }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><b>Interfaz / Formato</b></td>
+            {% for p in seleccionados %}{% set sp = specs_de(p) %}
+              <td>{{ sp.interfaz }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><b>Compatibilidad</b></td>
+            {% for p in seleccionados %}{% set sp = specs_de(p) %}
+              <td>{{ sp.compatibilidad }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><b>Garantía</b></td>
+            {% for p in seleccionados %}{% set sp = specs_de(p) %}
+              <td>{{ sp.garantia }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><b>Acción</b></td>
+            {% for p in seleccionados %}
+              <td><a class="btn mini primario" href="{{ url_for('producto_detalle', pid=p.id) }}">Ver ficha</a></td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

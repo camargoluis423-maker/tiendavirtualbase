@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Tienda{% endblock %} · {{ TIENDA }}</title>
+  <script>
+    document.documentElement.classList.add('js-anim');
+    try { if (localStorage.getItem('mt_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% from "_iconos.html" import icono_ui %}
+<div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+<header class="top" id="topHeader">
+  {% if usuario %}
+  <div class="top-strip">
+    <div class="contenedor top-strip-in">
+      <span>&#128205; Enviar a <b>Tepeaca y región</b> · Entrega hoy o mañana</span>
+      <span class="top-strip-right">&#9889; Hasta <b>10% desc.</b> por perfil · Compra Protegida M&amp;T</span>
+    </div>
+  </div>
+  {% endif %}
+  <div class="contenedor top-main">
+    <a class="logo" href="{{ url_for('index') if usuario else url_for('login') }}">
+      <span class="logo-dot">M&amp;T</span>
+      <span><b>{{ TIENDA }}</b><small>{{ ESLOGAN }}</small></span>
+    </a>
+
+    {% if usuario %}
+    <form class="header-search" method="get" action="{{ url_for('index') }}#catalogo" role="search" aria-label="Buscar en la tienda">
+      <select name="cat" aria-label="Categoría">
+        <option value="Todas">Todas</option>
+        {% for c in CATEGORIAS %}
+          <option value="{{ c }}" {{ 'selected' if cat is defined and cat == c }}>{{ c }}</option>
+        {% endfor %}
+      </select>
+      <input type="search" name="q" value="{{ q if q is defined else '' }}" placeholder="Buscar laptops, RTX, Ryzen, sillas…" aria-label="Buscar producto">
+      <button type="submit" aria-label="Buscar">{{ icono_ui('search') }}</button>
+    </form>
+    {% endif %}
+
+    <nav aria-label="Navegación principal">
+      <button type="button" class="btn-tema" id="themeToggle" aria-label="Cambiar modo oscuro/claro" title="Modo oscuro / claro">&#127769;</button>
+      {% if usuario %}
+        {% if usuario.rol == 'vendedor' %}
+          <a class="nav-rol vendedor" href="{{ url_for('vendedor_panel') }}">{{ icono_ui('store') }}<span>Panel Vendedor</span></a>
+          <a class="nav-login" href="{{ url_for('vendedor_sucursal') }}"><span>Sucursal POS</span></a>
+        {% else %}
+          {% if usuario.puntos_lealtad > 0 %}
+            <span class="nav-pts" title="Saldo en puntos de lealtad (2% por compra)">&#128142; {{ usuario.puntos_lealtad|dinero }}</span>
+          {% endif %}
+          <a class="nav-rol comprador" href="{{ url_for('mis_pedidos') }}">{{ icono_ui('orders') }}<span>Mis pedidos</span></a>
+          <a class="btn-carrito {{ 'con-items' if n_carrito > 0 }}" href="{{ url_for('carrito') }}">
+            {{ icono_ui('cart') }}<span>Carrito</span>
+            <span class="n" aria-label="{{ n_carrito }} artículos en el carrito">{{ n_carrito }}</span>
+          </a>
+        {% endif %}
+        <form method="post" action="{{ url_for('logout') }}" class="nav-logout">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit" class="nav-btn-salir" title="Cerrar sesión ({{ usuario.nombre }})">Salir</button>
+        </form>
+      {% else %}
+        <a class="nav-login" href="{{ url_for('login') }}">{{ icono_ui('user') }}<span>Entrar</span></a>
+      {% endif %}
+    </nav>
+  </div>
+  {% if usuario %}
+  <div class="sub-nav">
+    <div class="contenedor sub-nav-in">
+      <a class="sub-nav-link {{ 'activo' if cat is defined and cat == 'Todas' }}" href="{{ url_for('index') }}#catalogo">Catálogo</a>
+      {% for nombre in CATEGORIAS %}
+        <a class="sub-nav-link {{ 'activo' if cat is defined and cat == nombre }}" href="{{ url_for('index', cat=nombre) }}#catalogo">{{ nombre }}</a>
+      {% endfor %}
+      <a class="sub-nav-link" href="{{ url_for('armador_pc') }}">&#9881; Armador PC</a>
+      <a class="sub-nav-link" href="{{ url_for('recomendador') }}">&#10024; Recomendador</a>
+      <a class="sub-nav-link" href="{{ url_for('cotizador') }}">&#128221; Cotizador</a>
+      <a class="sub-nav-link" href="{{ url_for('trade_in') }}">&#9851; Trade-in</a>
+      <a class="sub-nav-link" href="{{ url_for('comparador') }}">&#9878; Comparar</a>
+      {% if WHATSAPP %}
+        <a class="sub-nav-link wa" href="https://wa.me/{{ WHATSAPP }}" rel="noopener">WhatsApp</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</header>
+
+<main class="contenedor">
+  {% if usuario and favoritos_regreso_stock %}
+  <div class="aviso-stock-fav">
+    &#128276; <b>¡Tus favoritos disponibles!</b> Hay existencias de:
+    {% for fp in favoritos_regreso_stock[:3] %}
+      <a href="{{ url_for('producto_detalle', pid=fp.id) }}"><b>{{ fp.nombre }}</b> ({{ fp.stock }} uds.)</a>{{ ', ' if not loop.last else '' }}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% with mensajes = get_flashed_messages(with_categories=true) %}
+    {% if mensajes %}
+    <div class="flashes" role="status" aria-live="polite">
+      {% for cat_msg, msg in mensajes %}
+      <div class="flash {{ cat_msg }}">
+        <span class="flash-dot" aria-hidden="true"></span>
+        <span class="flash-txt">{{ msg }}</span>
+        <button type="button" class="flash-close" aria-label="Cerrar aviso">&times;</button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+  {% block contenido %}{% endblock %}
+</main>
+
+<button type="button" class="btn-arriba" id="btnArriba" aria-label="Volver arriba" title="Volver arriba">
+  {{ icono_ui('arrow-up') }}
+</button>
+
+{% if usuario %}
+{# Modal de Vista Rápida estilo Amazon / Temu / Mercado Libre #}
+<div class="qv-backdrop" id="quickViewModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="qvTitulo">
+  <div class="qv-dialog">
+    <button type="button" class="qv-close" id="qvClose" aria-label="Cerrar vista rápida">&times;</button>
+    <div class="qv-grid">
+      <div class="qv-media">
+        <img id="qvImg" src="" alt="" hidden>
+        <div id="qvNoImg" class="qv-no-img">M&amp;T</div>
+        <span class="pastilla izq" id="qvCat"></span>
+      </div>
+      <div class="qv-body">
+        <div class="prod-rating"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> <b id="qvRating">4.9</b> <span class="suave">· Envío hoy</span></div>
+        <h2 id="qvTitulo"></h2>
+        <p class="qv-specs" id="qvSpecs"></p>
+        <div class="qv-precio-box">
+          <div class="precio" id="qvPrecio"></div>
+          <div class="precio-iva" id="qvPrecioIva"></div>
+        </div>
+        <div class="qv-stock" id="qvStock"></div>
+        <div class="qv-actions">
+          {% if usuario.rol == 'comprador' %}
+          <form method="post" action="{{ url_for('carrito_agregar') }}" id="qvForm">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="pid" id="qvPid" value="">
+            <input type="hidden" name="volver" value="{{ request.full_path.rstrip('?') }}">
+            <button type="submit" class="btn primario" id="qvBtnAdd">{{ icono_ui('cart') }}<span>Agregar al carrito</span></button>
+          </form>
+          {% else %}
+          <a class="btn primario" href="{{ url_for('vendedor_panel', tab='inventario') }}">Gestionar en inventario</a>
+          {% endif %}
+          <a class="btn" id="qvLinkDetalle" href="#">Ver ficha completa &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Barra flotante del Comparador #}
+<div class="compare-bar" id="compareBar" hidden>
+  <span><b id="compareCount">0</b>/3 para comparar</span>
+  <a class="btn mini primario" id="compareGoBtn" href="{{ url_for('comparador') }}">Comparar ahora</a>
+  <button type="button" class="btn mini" id="compareClearBtn">Limpiar</button>
+</div>
+
+{# Asistente Chatbot con Ollama #}
+<button type="button" class="chat-fab" id="chatToggleBtn" aria-label="Abrir asistente virtual Ollama" title="Asistente M&T · Ollama">
+  <span class="chat-fab-ico">&#129302;</span>
+  <span class="chat-fab-txt">Asistente IA</span>
+</button>
+
+<section class="chat-widget" id="chatWidget" hidden aria-label="Asistente virtual M&T con Ollama" data-csrf="{{ csrf }}">
+  <header class="chat-head">
+    <div>
+      <b>Asistente M&amp;T</b>
+      <small id="chatStatusBadge"><i class="dot"></i> Conectando con Ollama…</small>
+    </div>
+    <button type="button" class="chat-close" id="chatCloseBtn" aria-label="Cerrar asistente">&times;</button>
+  </header>
+  <div class="chat-msgs" id="chatMsgs">
+    <div class="chat-msg bot">
+      ¡Hola <b>{{ usuario.nombre }}</b>! Soy tu asistente de <b>{{ TIENDA }}</b> impulsado por <b>Ollama</b>. Pregúntame por recomendaciones de PC, componentes compatibles, precios o métodos de pago.
+    </div>
+  </div>
+  <div class="chat-chips">
+    <button type="button" data-chat-q="¿Qué PC gamer me recomiendas?">PC Gamer</button>
+    <button type="button" data-chat-q="¿Qué componentes tienes en stock?">Componentes</button>
+    <button type="button" data-chat-q="¿Cuáles son los descuentos por perfil?">Descuentos</button>
+    <button type="button" data-chat-q="¿Qué métodos de pago aceptan?">Pagos</button>
+  </div>
+  <form class="chat-form" id="chatForm">
+    <input type="text" id="chatInput" maxlength="450" placeholder="Escribe tu pregunta…" autocomplete="off" required>
+    <button type="submit" class="btn primario mini">Enviar</button>
+  </form>
+</section>
+{% endif %}
+
+<footer class="pie">
+  <div class="contenedor pie-grid">
+    <div>
+      <div class="pie-marca">
+        <span class="logo-dot mini">M&amp;T</span>
+        <div><b>{{ TIENDA }}</b><span>Soluciones PC · Tepeaca y región</span></div>
+      </div>
+      <p class="pie-desc">Equipos listos para trabajar, setups gamer y componentes seleccionados con stock en tiempo real.</p>
+    </div>
+    <div>
+      <h4>Apartados</h4>
+      {% if usuario %}
+        <ul>
+          {% for c in CATEGORIAS %}
+            <li><a href="{{ url_for('index', cat=c) }}#catalogo">{{ c }} ({{ conteos_cat.get(c, 0) }})</a></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="pie-nota">Inicia sesión como comprador o vendedor para explorar el catálogo.</p>
+      {% endif %}
+    </div>
+    <div>
+      <h4>Transparencia y pagos</h4>
+      <p>Los precios se muestran sin IVA; el {{ TASA_IVA_PCT }}% se suma al pagar.</p>
+      <p class="pie-nota">{{ PAGO_NOTA }}</p>
+      <div class="pie-badges">
+        {% for nombre, pct in PERFILES_DESCUENTOS %}
+          <span>{{ nombre }} −{{ pct }}%</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="contenedor pie-base">
+    <span>&copy; {{ TIENDA }} · Catálogo sincronizado en tiempo real</span>
+    {% if usuario and usuario.rol == 'comprador' %}
+      <a href="{{ url_for('carrito') }}">Ir al carrito ({{ n_carrito }}) &rarr;</a>
+    {% elif usuario and usuario.rol == 'vendedor' %}
+      <a href="{{ url_for('vendedor_panel') }}">Ir al Panel Vendedor &rarr;</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Iniciar sesión &rarr;</a>
+    {% endif %}
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>

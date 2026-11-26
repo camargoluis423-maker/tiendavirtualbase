@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono_ui %}
+{% block titulo %}Mis pedidos{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <h1 class="titulo">Mis pedidos</h1>
+    <p class="suave">Historial de compras asociadas a tu cuenta <b>{{ usuario.nombre }}</b> ({{ usuario.usuario }}).</p>
+  </div>
+  <a class="btn primario" href="{{ url_for('index') }}#catalogo">Seguir comprando</a>
+</div>
+
+{% if not pedidos %}
+  <div class="panel vacio reveal" style="margin-top:20px">
+    <b>&#9635;</b>
+    <p>Aún no has realizado pedidos con esta cuenta.</p>
+    <a class="btn primario" href="{{ url_for('index') }}">Explorar el catálogo</a>
+  </div>
+{% else %}
+  <div class="lista-pedidos">
+    {% for p in pedidos %}
+    {% set col = ESTADO_COLORES.get(p.estado, '#64748b') %}
+    <article class="panel pedido-card reveal" style="--est:{{ col }};--delay:{{ [loop.index0 * 45, 300]|min }}ms">
+      <div class="pedido-card-cab">
+        <div>
+          <span class="pedido-id">Pedido #{{ p.id }}</span>
+          <span class="suave">· {{ p.fecha }} · {{ p.pago }}</span>
+        </div>
+        <span class="estado-pill" style="--est:{{ col }}"><i></i>{{ p.estado }}</span>
+      </div>
+      <div class="pedido-items-mini">
+        {% for it in p['items'] %}
+          <div><span>{{ it.cantidad }}× {{ it.nombre }}</span><b>{{ it.importe|dinero }}</b></div>
+        {% endfor %}
+      </div>
+      <div class="pedido-card-pie">
+        <div>
+          <span class="suave">Total (incl. IVA)</span>
+          <b class="pedido-total">{{ p.total|dinero }}</b>
+        </div>
+        <div class="pedido-card-acc">
+          <a class="btn mini" href="{{ url_for('pedido', pid=p.id) }}">Ver comprobante</a>
+          <a class="btn mini primario" href="{{ url_for('pedido_ticket', pid=p.id) }}">Descargar .txt</a>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

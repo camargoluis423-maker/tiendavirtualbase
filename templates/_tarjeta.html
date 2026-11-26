@@ -1,0 +1,84 @@
+{% from "_iconos.html" import icono, icono_ui %}
+{% set est = estilo_cat(p.categoria) %}{% set nivel = nivel_stock(p.stock) %}{% set sp = specs_de(p) %}
+{% set p_of = precio_oferta(p) %}
+{% set rating = '4.9' if p.id % 3 == 0 else ('4.8' if p.id % 2 == 0 else '4.7') %}
+{% set reviews = 42 + (p.id * 11) % 95 %}
+<article class="prod reveal {{ 'agotado' if nivel == 'agotado' }}" style="--c:{{ est.color }};--delay:{{ [loop.index0 * 45, 360]|min if loop is defined else 0 }}ms">
+  <div class="foto">
+    <a class="foto-link" href="{{ url_for('producto_detalle', pid=p.id) }}" aria-label="Ver {{ p.nombre }}">
+      {% if p.foto %}
+        <img src="{{ url_for('foto', nombre=p.foto) }}" alt="{{ p.nombre }}" loading="lazy">
+      {% else %}
+        {{ icono(p.categoria) }}
+      {% endif %}
+    </a>
+    <span class="pastilla izq">{{ p.categoria }}</span>
+    <button type="button" class="btn-fav" data-fav-btn="{{ p.id }}" aria-label="Guardar en favoritos" title="Guardar en favoritos">&#9825;</button>
+    {% if nivel == 'agotado' %}
+      <span class="pastilla der estado rojo">Agotado</span>
+    {% elif p.get('descuento') %}
+      <span class="pastilla der estado top-venta">&#128184; &minus;{{ p.descuento|round|int }}%</span>
+    {% elif nivel == 'bajo' %}
+      <span class="pastilla der estado ambar">&#128293; Últimas {{ p.stock }} piezas</span>
+    {% elif p.id >= 18 %}
+      <span class="pastilla der estado nuevo">&#127381; Nuevo</span>
+    {% elif p.id in (1, 9, 10, 12, 14) %}
+      <span class="pastilla der estado top-venta">&#11088; Más vendido</span>
+    {% endif %}
+    <button type="button" class="ver-rapido"
+      data-quick-view
+      data-pid="{{ p.id }}"
+      data-nombre="{{ p.nombre }}"
+      data-cat="{{ p.categoria }}"
+      data-precio="{{ p_of|dinero }}"
+      data-precio-iva="c/IVA {{ (p_of * (1 + TASA_IVA))|dinero }}"
+      data-specs="{{ sp.especs }}"
+      data-stock="{{ p.stock }}"
+      data-nivel="{{ nivel }}"
+      data-rating="{{ rating }} ({{ reviews }})"
+      data-foto="{{ url_for('foto', nombre=p.foto) if p.foto else '' }}"
+      data-url="{{ url_for('producto_detalle', pid=p.id) }}">Vista rápida &#128065;</button>
+  </div>
+  <div class="cuerpo">
+    <div class="prod-rating">
+      <span class="stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+      <b>{{ rating }}</b>
+      <span class="suave">({{ reviews }})</span>
+      {% if nivel != 'agotado' %}<span class="envio-pill">Envío hoy</span>{% endif %}
+    </div>
+    <h3><a href="{{ url_for('producto_detalle', pid=p.id) }}">{{ p.nombre }}</a></h3>
+    {% if sp.etiquetas %}
+    <div class="prod-tags">
+      {% for tag in sp.etiquetas[:3] %}<span>{{ tag }}</span>{% endfor %}
+    </div>
+    {% endif %}
+    <div class="precio-bloque">
+      <div>
+        {% if p.get('descuento') %}<s class="deal-antes">{{ p.precio|dinero }}</s>{% endif %}
+        <div class="precio">{{ p_of|dinero }}<small> + IVA</small></div>
+      </div>
+      <div class="precio-iva">c/IVA {{ (p_of * (1 + TASA_IVA))|dinero }}</div>
+    </div>
+    <div class="stock {{ nivel }}">
+      <i></i>
+      <span>{% if nivel == 'agotado' %}Sin existencias{% elif nivel == 'bajo' %}&Uacute;ltimas {{ p.stock }} unidades{% else %}{{ p.stock }} disponibles{% endif %}</span>
+      {% if carrito and carrito.get(p.id) %}<span class="enc">&#10003; {{ carrito[p.id] }} en carrito</span>{% endif %}
+    </div>
+    <div class="card-acc-row">
+      {% if usuario and usuario.rol == 'vendedor' %}
+        <a class="btn bloque" href="{{ url_for('vendedor_panel', tab='inventario') }}">Gestionar en inventario</a>
+      {% else %}
+        <form method="post" action="{{ url_for('carrito_agregar') }}" style="flex:1">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="pid" value="{{ p.id }}">
+          <input type="hidden" name="volver" value="{{ request.full_path.rstrip('?') }}">
+          <button class="btn primario bloque btn-con-ico" {% if nivel == 'agotado' %}disabled{% endif %}>
+            {{ icono_ui('cart') }}
+            <span>{% if nivel == 'agotado' %}Agotado{% else %}Agregar{% endif %}</span>
+          </button>
+        </form>
+      {% endif %}
+      <button type="button" class="btn mini btn-cmp" data-compare-btn="{{ p.id }}" title="Comparar hasta 3 productos">&#9878;</button>
+    </div>
+  </div>
+</article>

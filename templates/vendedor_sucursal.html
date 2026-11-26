@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Modo Sucursal · POS{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <span class="comp-kicker">Punto de Venta Rápido · Sucursal</span>
+    <h1 class="titulo">Modo Sucursal (Caja Rápida)</h1>
+    <p class="suave">Busca productos, toca para agregar y cobra en 1 clic con ticket inmediato.</p>
+  </div>
+  <a class="btn" href="{{ url_for('vendedor_panel') }}">&larr; Volver al Panel Vendedor</a>
+</div>
+
+<div class="dos-col" style="margin-top:18px">
+  <section class="panel reveal">
+    <input type="search" id="posBuscar" placeholder="Buscar producto rápido (nombre o categoría)…" style="width:100%;margin-bottom:14px">
+    <div class="pos-grid" id="posGrid">
+      {% for pr in productos %}
+      <button type="button" class="pos-tile {{ 'agotado' if pr.stock <= 0 }}"
+        data-pos-add
+        data-pid="{{ pr.id }}"
+        data-nombre="{{ pr.nombre }}"
+        data-precio="{{ precio_oferta(pr) }}"
+        data-stock="{{ pr.stock }}"
+        data-search="{{ pr.nombre|lower }} {{ pr.categoria|lower }}"
+        {% if pr.stock <= 0 %}disabled{% endif %}>
+        <span class="pos-cat">{{ pr.categoria }}</span>
+        <b>{{ pr.nombre }}</b>
+        <div class="pos-foot">
+          <span>{{ precio_oferta(pr)|dinero }}</span>
+          <small>{{ pr.stock }} uds.</small>
+        </div>
+      </button>
+      {% endfor %}
+    </div>
+  </section>
+
+  <aside class="panel reveal">
+    <h2>Ticket de Caja</h2>
+    <div id="posTicketItems" class="pos-items">
+      <p class="suave">Toca un producto para agregarlo.</p>
+    </div>
+    <div class="totales">
+      <span class="gran">Total (+IVA est.)</span><span class="gran" id="posTotal">$0.00</span>
+    </div>
+    <form method="post" action="{{ url_for('vendedor_sucursal_cobrar') }}" id="posForm">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="items_json" id="posItemsJson" value="{}">
+      <label class="campo">Cliente
+        <input type="text" name="cliente" value="Venta en Sucursal" maxlength="80">
+      </label>
+      <label class="campo">Perfil
+        <select name="perfil">
+          {% for clave, etiq in perfiles %}<option value="{{ clave }}">{{ etiq }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="campo">Método de pago
+        <select name="pago">
+          {% for m in metodos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+        </select>
+      </label>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn" id="posLimpiar">Limpiar</button>
+        <button type="submit" class="btn primario" style="flex:1">Cobrar en 1 clic</button>
+      </div>
+    </form>
+  </aside>
+</div>
+{% endblock %}

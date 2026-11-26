@@ -1,0 +1,96 @@
+{# Ilustraciones SVG ligeras (sin imágenes externas: cargan rápido con conectividad limitada) #}
+{% macro icono(cat) -%}
+<svg class="ico" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{% if cat == 'Computadoras' %}
+  <rect x="16" y="20" width="88" height="56" rx="8" fill="currentColor" fill-opacity=".07"/>
+  <rect x="22" y="26" width="76" height="44" rx="4" opacity=".45"/>
+  <path d="M46 98h28M60 76v22"/><path d="M32 38h28M32 48h18" opacity=".65"/><circle cx="82" cy="52" r="8" opacity=".55"/>
+{% elif cat == 'Compus Gaming' %}
+  <rect x="32" y="12" width="56" height="96" rx="9" fill="currentColor" fill-opacity=".08"/>
+  <circle cx="60" cy="39" r="14"/><circle cx="60" cy="39" r="4" fill="currentColor" fill-opacity=".4"/>
+  <circle cx="60" cy="77" r="14"/><circle cx="60" cy="77" r="4" fill="currentColor" fill-opacity=".4"/>
+  <path d="M41 20v80" stroke-width="2.6" opacity=".5"/><path d="M48 100h24" opacity=".6"/>
+{% elif cat == 'Componentes' %}
+  <rect x="34" y="34" width="52" height="52" rx="8" fill="currentColor" fill-opacity=".09"/>
+  <rect x="47" y="47" width="26" height="26" rx="4" opacity=".65"/>
+  <circle cx="60" cy="60" r="5" fill="currentColor" fill-opacity=".45"/>
+  <path d="M46 20v14M60 20v14M74 20v14M46 86v14M60 86v14M74 86v14M20 46h14M20 60h14M20 74h14M86 46h14M86 60h14M86 74h14"/>
+{% elif cat == 'Software' %}
+  <rect x="16" y="22" width="88" height="76" rx="9" fill="currentColor" fill-opacity=".07"/>
+  <path d="M16 41h88"/><circle cx="28" cy="31.5" r="2.2" fill="currentColor"/><circle cx="38" cy="31.5" r="2.2" fill="currentColor"/><circle cx="48" cy="31.5" r="2.2" fill="currentColor"/>
+  <path d="M46 61 34 70l12 9M74 61l12 9-12 9M64 56 56 84"/>
+{% elif cat == 'Mobiliario' %}
+  <rect x="32" y="18" width="56" height="38" rx="8" fill="currentColor" fill-opacity=".08"/>
+  <path d="M38 56v11M82 56v11M60 67v21M34 99l26-11 26 11"/><path d="M44 30h32" opacity=".45"/>
+{% else %}
+  <rect x="37" y="12" width="46" height="96" rx="10" fill="currentColor" fill-opacity=".08"/>
+  <path d="M52 22h16M55 96h10"/><rect x="44" y="31" width="32" height="54" rx="4" opacity=".45"/>
+{% endif %}
+</svg>
+{%- endmacro %}
+
+{% macro icono_comp(clave) -%}
+<svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{% if clave == 'gpu' %}
+  <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="9" cy="12" r="3"/><circle cx="16.5" cy="12" r="2.5"/><path d="M5 18v2M9 18v2"/>
+{% elif clave == 'ram' %}
+  <rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 17v2M10 17v2M14 17v2M18 17v2M6 10v4M10 10v4M14 10v4M18 10v4"/>
+{% elif clave == 'ssd' %}
+  <rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h6M7 14h4M17 9v6"/>
+{% elif clave == 'cpu' %}
+  <rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>
+{% elif clave == 'psu' %}
+  <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M13 8l-3 4h4l-3 4"/>
+{% elif clave == 'gabinete' %}
+  <rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="8" r="2.5"/><circle cx="12" cy="15" r="2.5"/>
+{% else %}
+  <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/>
+{% endif %}
+</svg>
+{%- endmacro %}
+
+{% macro icono_ui(nombre) -%}
+<svg class="ico-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{% if nombre == 'cart' %}
+  <circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.4 11.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.5L22 7H6"/>
+{% elif nombre == 'search' %}
+  <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+{% elif nombre == 'shield' %}
+  <path d="M12 2 4 5v6c0 5 3.4 9.6 8 11 4.6-1.4 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/>
+{% elif nombre == 'pulse' %}
+  <path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>
+{% elif nombre == 'tag' %}
+  <path d="M12 2H4v8l9.5 9.5a2.1 2.1 0 0 0 3 0l3-3a2.1 2.1 0 0 0 0-3z"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/>
+{% elif nombre == 'bolt' %}
+  <path d="M13 2 4 14h7l-1 8 9-12h-7z"/>
+{% elif nombre == 'table' %}
+  <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/>
+{% elif nombre == 'grid' %}
+  <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+{% elif nombre == 'check' %}
+  <path d="m5 12 5 5L20 7"/>
+{% elif nombre == 'arrow-up' %}
+  <path d="M12 19V5M5 12l7-7 7 7"/>
+{% elif nombre == 'copy' %}
+  <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+{% elif nombre == 'download' %}
+  <path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16"/>
+{% elif nombre == 'user' %}
+  <circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/>
+{% elif nombre == 'store' %}
+  <path d="M3 9l1.5-5h15L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/>
+{% elif nombre == 'lock' %}
+  <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+{% elif nombre == 'orders' %}
+  <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>
+{% elif nombre == 'card' %}
+  <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4M14 15h4"/>
+{% elif nombre == 'bank' %}
+  <path d="M3 21h18M3 10h18M5 6l7-3 7 3"/><path d="M5 10v7M9 10v7M15 10v7M19 10v7M12 10v7"/>
+{% elif nombre == 'cash' %}
+  <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M2 9h2M20 9h2M2 15h2M20 15h2"/>
+{% elif nombre == 'truck' %}
+  <path d="M1 14h12V6H1z"/><path d="M13 9h4l3 4v5h-4"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/>
+{% endif %}
+</svg>
+{%- endmacro %}

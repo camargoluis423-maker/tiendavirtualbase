@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block titulo %}Recomendador Inteligente{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <span class="comp-kicker">3 preguntas rápidas</span>
+    <h1 class="titulo">Asistente Recomendador M&amp;T</h1>
+    <p class="suave">Cuéntanos qué necesitas y te recomendamos 3 opciones ideales con su justificación.</p>
+  </div>
+</div>
+
+<div class="dos-col" style="margin-top:18px">
+  <form method="post" action="{{ url_for('recomendador') }}" class="panel reveal">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h2>Tu perfil de búsqueda</h2>
+    <label class="campo">1. ¿Para qué lo usarás principalmente?
+      <select name="uso">
+        <option value="gaming" {{ 'selected' if uso == 'gaming' }}>Gaming y Streaming</option>
+        <option value="estudio" {{ 'selected' if uso == 'estudio' }}>Escuela, Clases y Oficina</option>
+        <option value="ingenieria" {{ 'selected' if uso == 'ingenieria' }}>Ingeniería, CAD y Simulación</option>
+        <option value="creacion" {{ 'selected' if uso == 'creacion' }}>Diseño, Video y Creación</option>
+      </select>
+    </label>
+    <label class="campo">2. ¿Cuál es tu presupuesto aproximado (sin IVA)?
+      <select name="presupuesto">
+        <option value="10000" {{ 'selected' if presupuesto == '10000' }}>Hasta $10,000 MXN</option>
+        <option value="20000" {{ 'selected' if presupuesto == '20000' }}>Hasta $20,000 MXN</option>
+        <option value="25000" {{ 'selected' if presupuesto == '25000' }}>Hasta $25,000 MXN</option>
+        <option value="45000" {{ 'selected' if presupuesto == '45000' }}>Hasta $45,000 MXN</option>
+      </select>
+    </label>
+    <label class="campo">3. ¿Prefieres portátil o escritorio?
+      <select name="formato">
+        <option value="indiferente" {{ 'selected' if formato == 'indiferente' }}>Indiferente (lo mejor disponible)</option>
+        <option value="portatil" {{ 'selected' if formato == 'portatil' }}>Portátil / Laptop</option>
+        <option value="escritorio" {{ 'selected' if formato == 'escritorio' }}>PC de Escritorio / Componentes</option>
+      </select>
+    </label>
+    <button type="submit" class="btn primario bloque">Ver 3 recomendaciones</button>
+  </form>
+
+  <section class="panel reveal">
+    <h2>Opciones recomendadas</h2>
+    {% if not recomendados %}
+      <p class="suave">Responde las 3 preguntas a la izquierda y presiona <b>Ver 3 recomendaciones</b>.</p>
+    {% else %}
+      <div style="display:grid;gap:14px">
+        {% for item in recomendados %}{% set p = item.prod %}
+        <article class="panel" style="padding:14px;border-left:4px solid var(--mt-green)">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+            <b>{{ loop.index }}. {{ p.nombre }}</b>
+            <b style="color:var(--mt-blue-dark);font-size:1.15rem">{{ precio_oferta(p)|dinero }}</b>
+          </div>
+          <p class="suave" style="margin:6px 0">{{ item.razon }} · Stock: {{ p.stock }} uds.</p>
+          <a class="btn mini primario" href="{{ url_for('producto_detalle', pid=p.id) }}">Ver ficha técnica &rarr;</a>
+        </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

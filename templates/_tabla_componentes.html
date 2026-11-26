@@ -1,0 +1,138 @@
+{% from "_iconos.html" import icono_comp, icono_ui %}
+{% if componentes_tabla %}
+<div class="comp-panel reveal" id="tabla-componentes">
+  <div class="comp-panel-top">
+    <div>
+      <span class="comp-kicker">Especificaciones y comparativa</span>
+      <h3>Tabla de Componentes</h3>
+      <p class="suave">Compara interfaz, compatibilidad, garantía y existencias antes de armar o actualizar tu equipo.</p>
+    </div>
+    <div class="comp-meta">
+      <span class="comp-count">Mostrando <b id="compVisibleCount">{{ componentes_tabla|length }}</b> de {{ componentes_tabla|length }}</span>
+    </div>
+  </div>
+
+  <div class="comp-toolbar">
+    <div class="comp-chips" role="group" aria-label="Filtrar por tipo de componente">
+      <button type="button" class="chip-mini on" data-comp-filter="todos">Todos</button>
+      <button type="button" class="chip-mini" data-comp-filter="gpu">GPU / Video</button>
+      <button type="button" class="chip-mini" data-comp-filter="cpu">Procesador</button>
+      <button type="button" class="chip-mini" data-comp-filter="ram">RAM</button>
+      <button type="button" class="chip-mini" data-comp-filter="ssd">SSD / Almacenamiento</button>
+      <button type="button" class="chip-mini" data-comp-filter="psu">Fuente</button>
+      <button type="button" class="chip-mini" data-comp-filter="gabinete">Gabinete</button>
+    </div>
+    <label class="comp-search">
+      {{ icono_ui('search') }}
+      <input type="search" id="compFiltroTexto" placeholder="Filtrar tabla (ej. DDR5, AM5, 8GB…)" aria-label="Filtrar tabla de componentes">
+    </label>
+  </div>
+
+  <div class="tabla-scroll">
+    <table class="tabla-comp">
+      <thead>
+        <tr>
+          <th><button type="button" class="th-sort" data-sort="nombre">Componente <span aria-hidden="true">↕</span></button></th>
+          <th><button type="button" class="th-sort" data-sort="tipo">Tipo <span aria-hidden="true">↕</span></button></th>
+          <th>Especificaciones e Interfaz</th>
+          <th>Compatibilidad</th>
+          <th><button type="button" class="th-sort" data-sort="stock">Stock <span aria-hidden="true">↕</span></button></th>
+          <th class="num"><button type="button" class="th-sort" data-sort="precio">Precio <span aria-hidden="true">↕</span></button></th>
+          <th class="acc">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in componentes_tabla %}
+          {% set sp = specs_de(c) %}
+          {% set niv = nivel_stock(c.stock) %}
+          {% set pct = [100, (c.stock * 100 // 12)]|min if c.stock > 0 else 0 %}
+          <tr class="comp-row {{ 'agotado' if niv == 'agotado' }}"
+              data-tipo="{{ sp.clave_tipo }}"
+              data-nombre="{{ c.nombre }}"
+              data-precio="{{ c.precio }}"
+              data-stock="{{ c.stock }}"
+              data-search="{{ c.nombre }} {{ sp.tipo }} {{ sp.especs }} {{ sp.interfaz }} {{ sp.compatibilidad }}">
+            <td>
+              <div class="comp-prod">
+                <a class="comp-thumb" href="{{ url_for('producto_detalle', pid=c.id) }}" aria-label="Ver {{ c.nombre }}">
+                  {% if c.foto %}
+                    <img src="{{ url_for('foto', nombre=c.foto) }}" alt="{{ c.nombre }}" loading="lazy">
+                  {% else %}
+                    {{ icono_comp(sp.clave_tipo) }}
+                  {% endif %}
+                </a>
+                <div>
+                  <a class="comp-nombre" href="{{ url_for('producto_detalle', pid=c.id) }}">{{ c.nombre }}</a>
+                  <span class="comp-garantia">Garantía {{ sp.garantia }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="tipo-pill tipo-{{ sp.clave_tipo }}">
+                {{ icono_comp(sp.clave_tipo) }}
+                <span>{{ sp.tipo }}</span>
+              </span>
+            </td>
+            <td>
+              <div class="comp-espec">{{ sp.especs }}</div>
+              <div class="comp-interfaz">{{ sp.interfaz }}</div>
+            </td>
+            <td>
+              <div class="comp-compat">{{ sp.compatibilidad }}</div>
+            </td>
+            <td>
+              <div class="comp-stock">
+                <span class="stock-pill {{ niv }}">
+                  <i></i>
+                  {% if niv == 'agotado' %}Agotado
+                  {% elif niv == 'bajo' %}Quedan {{ c.stock }}
+                  {% else %}{{ c.stock }} uds.{% endif %}
+                </span>
+                <div class="barra-stock" aria-hidden="true"><span class="{{ niv }}" style="width:{{ pct }}%"></span></div>
+                {% if carrito and carrito.get(c.id) %}
+                  <span class="comp-enc">&#10003; {{ carrito[c.id] }} en carrito</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="num">
+              <div class="comp-precio">{{ c.precio|dinero }}</div>
+              <div class="comp-iva">c/IVA {{ (c.precio * (1 + TASA_IVA))|dinero }}</div>
+            </td>
+            <td class="acc">
+              <div class="comp-acciones">
+                {% if not usuario or usuario.rol != 'vendedor' %}
+                <form method="post" action="{{ url_for('carrito_agregar') }}">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <input type="hidden" name="pid" value="{{ c.id }}">
+                  <input type="hidden" name="volver" value="{{ request.full_path.rstrip('?') }}#tabla-componentes">
+                  <button class="btn primario mini btn-add-comp" {% if niv == 'agotado' %}disabled{% endif %}>
+                    {{ icono_ui('cart') }}
+                    <span>{% if niv == 'agotado' %}Agotado{% else %}Agregar{% endif %}</span>
+                  </button>
+                </form>
+                {% endif %}
+                <a class="btn mini btn-ficha" href="{{ url_for('producto_detalle', pid=c.id) }}">Ficha</a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        <tr id="compEmptyRow" hidden>
+          <td colspan="7" class="comp-empty">No hay componentes que coincidan con ese filtro en la tabla.</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4">
+            <b>Resumen de componentes:</b> {{ componentes_tabla|length }} modelos listados ·
+            {{ componentes_tabla|selectattr('stock', 'gt', 0)|list|length }} disponibles para entrega inmediata
+          </td>
+          <td><b>{{ componentes_tabla|sum(attribute='stock') }}</b> uds. totales</td>
+          <td class="num" colspan="2">
+            Desde <b>{{ (componentes_tabla|min(attribute='precio')).precio|dinero }}</b> hasta <b>{{ (componentes_tabla|max(attribute='precio')).precio|dinero }}</b>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endif %}

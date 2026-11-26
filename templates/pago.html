@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono, icono_ui %}
+{% block titulo %}Pago seguro{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <h1 class="titulo">Pago seguro</h1>
+    <p class="suave">Completa los datos de pago para confirmar tu pedido. <b>Modo sandbox:</b> no se cobra nada real.</p>
+  </div>
+  <ol class="pasos" aria-label="Progreso de compra">
+    <li class="done"><span>&#10003;</span>Carrito</li>
+    <li class="done"><span>&#10003;</span>Perfil</li>
+    <li class="on"><span>3</span>Pago</li>
+    <li><span>4</span>Comprobante</li>
+  </ol>
+</div>
+
+<div class="pago-layout reveal">
+  {# ── COLUMNA IZQUIERDA: Formulario de pago ── #}
+  <section class="pago-form-col">
+    <div class="pago-gateway">
+      <div class="pago-gateway-top">
+        <div class="pago-lock">{{ icono_ui('lock') }}</div>
+        <div>
+          <span class="pago-gateway-titulo">Pasarela de pago · M&T Checkout</span>
+          <span class="pago-gateway-sub">Conexión segura · Modo de prueba (sandbox)</span>
+        </div>
+        <div class="pago-badges">
+          <span class="pago-badge visa">VISA</span>
+          <span class="pago-badge mc">MC</span>
+          <span class="pago-badge spei">SPEI</span>
+        </div>
+      </div>
+
+      <div class="pago-metodo-tabs" role="tablist" aria-label="Método de pago">
+        {% for m in ['Tarjeta', 'Transferencia bancaria', 'Efectivo', 'Contra entrega'] %}
+          <button type="button" class="pago-tab {{ 'on' if m == pago }}" data-pago-tab="{{ m }}" role="tab" aria-selected="{{ 'true' if m == pago else 'false' }}">
+            {% if m == 'Tarjeta' %}{{ icono_ui('card') }}{% elif m == 'Transferencia bancaria' %}{{ icono_ui('bank') }}{% elif m == 'Efectivo' %}{{ icono_ui('cash') }}{% else %}{{ icono_ui('truck') }}{% endif %}
+            <span>{{ m }}</span>
+          </button>
+        {% endfor %}
+      </div>
+
+      <form method="post" action="{{ url_for('comprar') }}" id="formPago" autocomplete="off">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="token_pago" value="{{ token_pago }}">
+        <input type="hidden" name="perfil" value="{{ perfil }}">
+        <input type="hidden" name="cliente" value="{{ cliente }}">
+        <input type="hidden" name="pago" id="pagoMetodoInput" value="{{ pago }}">
+
+        {# ── TARJETA ── #}
+        <div class="pago-panel" id="pago-Tarjeta" {{ '' if pago == 'Tarjeta' else 'hidden' }}>
+          <div class="tarjeta-preview" id="cardPreview">
+            <div class="tarjeta-chip"></div>
+            <div class="tarjeta-numero" id="cardPreviewNum">•••• •••• •••• ••••</div>
+            <div class="tarjeta-row">
+              <div><small>TITULAR</small><span id="cardPreviewName">TU NOMBRE</span></div>
+              <div><small>VENCE</small><span id="cardPreviewExp">MM/AA</span></div>
+            </div>
+            <div class="tarjeta-red" id="cardPreviewRed"></div>
+          </div>
+
+          <label class="campo">Número de tarjeta
+            <input type="text" name="card_number" id="cardNumber" maxlength="19" inputmode="numeric"
+                   placeholder="4242 4242 4242 4242" autocomplete="cc-number"
+                   pattern="[0-9 ]{13,19}" required>
+            <span class="campo-hint">Usa 4242… para simular Visa o 5500… para Mastercard</span>
+          </label>
+          <label class="campo">Nombre del titular
+            <input type="text" name="card_name" id="cardName" maxlength="60" placeholder="NOMBRE COMO APARECE EN LA TARJETA" autocomplete="cc-name" required>
+          </label>
+          <div class="pago-row">
+            <label class="campo">Fecha de expiración
+              <input type="text" name="card_exp" id="cardExp" maxlength="5" placeholder="MM/AA" inputmode="numeric" autocomplete="cc-exp" required>
+            </label>
+            <label class="campo">CVV
+              <input type="text" name="card_cvv" maxlength="4" placeholder="•••" inputmode="numeric" autocomplete="cc-csc" required>
+              <span class="campo-hint">3 o 4 dígitos en el reverso</span>
+            </label>
+          </div>
+        </div>
+
+        {# ── TRANSFERENCIA BANCARIA ── #}
+        <div class="pago-panel" id="pago-Transferencia bancaria" {{ '' if pago == 'Transferencia bancaria' else 'hidden' }}>
+          <div class="pago-instrucciones">
+            <div class="pago-inst-ico">{{ icono_ui('bank') }}</div>
+            <div>
+              <b>Realiza tu transferencia SPEI a esta cuenta:</b>
+              <div class="pago-datos-banco">
+                <div><span>Banco:</span><b>Banorte</b></div>
+                <div><span>CLABE:</span><b id="clabeDisplay">0123 4567 8901 234567</b>
+                  <button type="button" class="btn mini" id="btnCopiarClabe" aria-label="Copiar CLABE">Copiar</button>
+                </div>
+                <div><span>Beneficiario:</span><b>M&T Soluciones PC · COM-1</b></div>
+                <div><span>Concepto:</span><b>Pedido web · {{ cliente or 'Cliente' }}</b></div>
+                <div><span>Monto exacto:</span><b class="pago-monto-ref">{{ total|dinero }}</b></div>
+              </div>
+            </div>
+          </div>
+          <label class="campo">Banco de origen
+            <select name="banco_origen">
+              <option>BBVA</option><option>Banorte</option><option>Santander</option><option>HSBC</option><option>Banamex / Citibanamex</option><option>Scotiabank</option><option>Otro</option>
+            </select>
+          </label>
+          <label class="campo">Referencia o número de operación (opcional)
+            <input type="text" name="referencia_transfer" maxlength="30" placeholder="Ej. 00123456789">
+          </label>
+        </div>
+
+        {# ── EFECTIVO ── #}
+        <div class="pago-panel" id="pago-Efectivo" {{ '' if pago == 'Efectivo' else 'hidden' }}>
+          <div class="pago-instrucciones">
+            <div class="pago-inst-ico">{{ icono_ui('cash') }}</div>
+            <div>
+              <b>Paga en efectivo en cualquier sucursal participante:</b>
+              <p class="suave" style="margin:4px 0 0">Se genera una referencia de pago. Acude a la sucursal seleccionada con el monto exacto de <b>{{ total|dinero }}</b> antes de 24 horas.</p>
+            </div>
+          </div>
+          <div class="pago-ref-box">
+            <span class="suave">Referencia de pago</span>
+            <b class="pago-ref-codigo" id="refEfectivo">EF-{{ '%08X' | format(range(1, 99999999) | random) }}</b>
+            <span class="suave">Vigencia: 24 horas</span>
+          </div>
+          <label class="campo">Sucursal preferida
+            <select name="sucursal_pago">
+              <option>M&T Tepeaca (Centro)</option>
+              <option>M&T Tecamachalco</option>
+              <option>OXXO más cercano</option>
+              <option>Seven Eleven</option>
+            </select>
+          </label>
+        </div>
+
+        {# ── CONTRA ENTREGA ── #}
+        <div class="pago-panel" id="pago-Contra entrega" {{ '' if pago == 'Contra entrega' else 'hidden' }}>
+          <div class="pago-instrucciones">
+            <div class="pago-inst-ico">{{ icono_ui('truck') }}</div>
+            <div>
+              <b>Paga al recibir tu pedido</b>
+              <p class="suave" style="margin:4px 0 0">Un repartidor entregará tu pedido y cobrarás en efectivo o terminal punto de venta. Aplica solo en zona Tepeaca y región.</p>
+            </div>
+          </div>
+          <label class="campo">Dirección de entrega
+            <input type="text" name="direccion_entrega" maxlength="100" placeholder="Calle, número, colonia, CP" required>
+          </label>
+          <label class="campo">Teléfono de contacto
+            <input type="tel" name="telefono_entrega" maxlength="20" placeholder="Ej. 222 123 4567" inputmode="tel" required>
+          </label>
+        </div>
+
+        <div class="pago-sandbox-aviso">
+          {{ icono_ui('shield') }}
+          <span><b>Modo sandbox:</b> Ningún cargo real será procesado. Los datos de tarjeta no se almacenan ni se envían a un procesador.</span>
+        </div>
+
+        <div class="pago-acciones">
+          <a class="btn" href="{{ url_for('carrito') }}">&larr; Volver al carrito</a>
+          <button type="submit" class="btn primario btn-con-ico btn-pagar" id="btnPagar">
+            {{ icono_ui('lock') }}
+            <span>Confirmar y pagar {{ total|dinero }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  {# ── COLUMNA DERECHA: Resumen del pedido ── #}
+  <aside class="pago-resumen-col">
+    <div class="panel">
+      <h2>Resumen del pedido</h2>
+      {% for it in items %}
+      {% set p = productos[it.producto_id] %}{% set est = estilo_cat(it.categoria) %}
+      <div class="pago-linea">
+        <div class="pago-linea-foto" style="--c:{{ est.color }}">
+          {% if p.foto %}<img src="{{ url_for('foto', nombre=p.foto) }}" alt="">{% else %}{{ icono(it.categoria) }}{% endif %}
+        </div>
+        <div class="pago-linea-info">
+          <b>{{ it.nombre }}</b>
+          <span class="suave">{{ it.cantidad }}× {{ it.precio|dinero }}</span>
+        </div>
+        <b>{{ it.importe|dinero }}</b>
+      </div>
+      {% endfor %}
+
+      <div class="totales" style="margin-top:14px">
+        <span class="suave">Subtotal</span><span>{{ subtotal|dinero }}</span>
+        <span class="suave">Descuento ({{ perfil }})</span>
+        <span class="{{ 'ahorro' if descuento }}">{% if descuento %}&minus;{{ descuento|dinero }}{% else %}{{ 0|dinero }}{% endif %}</span>
+        <span class="suave">IVA ({{ TASA_IVA_PCT }}%)</span><span>{{ iva|dinero }}</span>
+        <span class="gran">Total a pagar</span><span class="gran">{{ total|dinero }}</span>
+      </div>
+
+      <div class="pago-info-extra">
+        <div>{{ icono_ui('shield') }}<span>Protección al comprador M&T</span></div>
+        <div>{{ icono_ui('truck') }}<span>Entrega en Tepeaca y región</span></div>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

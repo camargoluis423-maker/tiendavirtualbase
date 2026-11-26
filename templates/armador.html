@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono_ui %}
+{% block titulo %}Armador de PC{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <span class="comp-kicker">Compatibilidad en tiempo real</span>
+    <h1 class="titulo">Armador de PC M&amp;T</h1>
+    <p class="suave">Elige tus componentes y verifica compatibilidad de socket, memoria DDR5 y potencia de fuente al instante.</p>
+  </div>
+  <a class="btn" href="{{ url_for('index', cat='Componentes') }}#catalogo">Ver todos los componentes</a>
+</div>
+
+<div class="dos-col" style="margin-top:18px">
+  <form method="post" action="{{ url_for('armador_pc_agregar') }}" class="panel reveal" id="armadorForm">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h2>1. Elige tus componentes</h2>
+
+    <label class="campo">Procesador (CPU)
+      <select name="cpu" data-arm-sel="cpu">
+        <option value="">-- Seleccionar CPU --</option>
+        {% for p in cpus %}{% set sp = specs_de(p) %}
+          <option value="{{ p.id }}" data-precio="{{ precio_oferta(p) }}" data-stock="{{ p.stock }}" data-specs="{{ sp.interfaz }} {{ sp.compatibilidad }}">
+            {{ p.nombre }} — {{ precio_oferta(p)|dinero }} ({{ 'Agotado' if p.stock <= 0 else p.stock ~ ' disp.' }})
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="campo">Memoria RAM
+      <select name="ram" data-arm-sel="ram">
+        <option value="">-- Seleccionar RAM --</option>
+        {% for p in rams %}{% set sp = specs_de(p) %}
+          <option value="{{ p.id }}" data-precio="{{ precio_oferta(p) }}" data-stock="{{ p.stock }}" data-specs="{{ p.nombre }} {{ sp.especs }}">
+            {{ p.nombre }} — {{ precio_oferta(p)|dinero }} ({{ 'Agotado' if p.stock <= 0 else p.stock ~ ' disp.' }})
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="campo">Almacenamiento SSD
+      <select name="ssd" data-arm-sel="ssd">
+        <option value="">-- Seleccionar SSD --</option>
+        {% for p in ssds %}{% set sp = specs_de(p) %}
+          <option value="{{ p.id }}" data-precio="{{ precio_oferta(p) }}" data-stock="{{ p.stock }}" data-specs="{{ sp.interfaz }}">
+            {{ p.nombre }} — {{ precio_oferta(p)|dinero }} ({{ 'Agotado' if p.stock <= 0 else p.stock ~ ' disp.' }})
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="campo">Tarjeta Gráfica (GPU)
+      <select name="gpu" data-arm-sel="gpu">
+        <option value="">-- Seleccionar GPU --</option>
+        {% for p in gpus %}{% set sp = specs_de(p) %}
+          <option value="{{ p.id }}" data-precio="{{ precio_oferta(p) }}" data-stock="{{ p.stock }}" data-specs="{{ sp.compatibilidad }}">
+            {{ p.nombre }} — {{ precio_oferta(p)|dinero }} ({{ 'Agotado' if p.stock <= 0 else p.stock ~ ' disp.' }})
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="campo">Fuente de Poder (PSU)
+      <select name="psu" data-arm-sel="psu">
+        <option value="">-- Seleccionar Fuente --</option>
+        {% for p in psus %}{% set sp = specs_de(p) %}
+          <option value="{{ p.id }}" data-precio="{{ precio_oferta(p) }}" data-stock="{{ p.stock }}" data-specs="{{ p.nombre }} {{ sp.especs }}">
+            {{ p.nombre }} — {{ precio_oferta(p)|dinero }} ({{ 'Agotado' if p.stock <= 0 else p.stock ~ ' disp.' }})
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="campo">Gabinete
+      <select name="gabinete" data-arm-sel="gabinete">
+        <option value="">-- Seleccionar Gabinete --</option>
+        {% for p in gabinetes %}{% set sp = specs_de(p) %}
+          <option value="{{ p.id }}" data-precio="{{ precio_oferta(p) }}" data-stock="{{ p.stock }}" data-specs="{{ sp.compatibilidad }}">
+            {{ p.nombre }} — {{ precio_oferta(p)|dinero }} ({{ 'Agotado' if p.stock <= 0 else p.stock ~ ' disp.' }})
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    {% if usuario.rol == 'comprador' %}
+      <button type="submit" class="btn primario bloque btn-con-ico" style="margin-top:14px">
+        {{ icono_ui('cart') }}<span>Agregar todo el combo al carrito</span>
+      </button>
+    {% else %}
+      <p class="aviso-pago">Modo vista previa de vendedor.</p>
+    {% endif %}
+  </form>
+
+  <aside class="panel reveal">
+    <h2>2. Diagnóstico de Compatibilidad</h2>
+    <div id="armChecks" class="arm-checks">
+      <div class="arm-msg ok">Selecciona componentes para validar socket, RAM y potencia eléctrica.</div>
+    </div>
+    <div class="totales" style="margin-top:18px">
+      <span class="suave">Componentes elegidos</span><span id="armCount">0</span>
+      <span class="gran">Total estimado</span><span class="gran" id="armTotal">$0.00</span>
+    </div>
+    <p class="suave" style="font-size:.82rem">Precios sin IVA. Puedes aplicar tu perfil (Estudiante, Escuela, Empresa) o cupón en el carrito.</p>
+  </aside>
+</div>
+{% endblock %}

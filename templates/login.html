@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono_ui %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block contenido %}
+<section class="auth-wrap reveal">
+  <div class="auth-aside">
+    <span class="etiqueta">Acceso seguro · {{ TIENDA }}</span>
+    <h1>Elige tu perfil de acceso</h1>
+    <p>Ingresa como <b>Comprador</b> para guardar tu historial de pedidos y aplicar tu descuento automático, o como <b>Vendedor</b> para administrar pedidos, estados e inventario en tiempo real.</p>
+
+    <div class="auth-beneficios">
+      <div class="auth-ben-item">
+        {{ icono_ui('user') }}
+        <div>
+          <b>Cuenta Comprador</b>
+          <span>Historial permanente de compras, tickets y perfil académico/empresarial preconfigurado.</span>
+        </div>
+      </div>
+      <div class="auth-ben-item">
+        {{ icono_ui('store') }}
+        <div>
+          <b>Panel Vendedor</b>
+          <span>KPIs de ventas, distribución por estado, actualización de pedidos e inventario sincronizado.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-card">
+      <div class="demo-titulo">Credenciales de prueba rápidas</div>
+      <div class="demo-fila">
+        <div>
+          <b>Comprador:</b> <code>comprador@mtcom1.mx</code> · <code>comprador123</code>
+        </div>
+        <button type="button" class="btn mini" data-demo-role="comprador" data-demo-user="comprador@mtcom1.mx" data-demo-pass="comprador123">Usar</button>
+      </div>
+      <div class="demo-fila">
+        <div>
+          <b>Vendedor:</b> <code>vendedor@mtcom1.mx</code> · <code>vendedor123</code>
+        </div>
+        <button type="button" class="btn mini" data-demo-role="vendedor" data-demo-user="vendedor@mtcom1.mx" data-demo-pass="vendedor123">Usar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-card">
+    <div class="rol-switch" role="tablist" aria-label="Tipo de cuenta">
+      <button type="button" class="rol-btn {{ 'on' if rol_tab == 'comprador' }}" data-rol-tab="comprador" role="tab" aria-selected="{{ 'true' if rol_tab == 'comprador' else 'false' }}">
+        {{ icono_ui('user') }}
+        <span>Comprador</span>
+      </button>
+      <button type="button" class="rol-btn {{ 'on' if rol_tab == 'vendedor' }}" data-rol-tab="vendedor" role="tab" aria-selected="{{ 'true' if rol_tab == 'vendedor' else 'false' }}">
+        {{ icono_ui('store') }}
+        <span>Vendedor</span>
+      </button>
+    </div>
+
+    <div class="modo-tabs" id="modoTabs" {{ 'hidden' if rol_tab == 'vendedor' }}>
+      <button type="button" class="{{ 'on' if modo != 'registro' }}" data-auth-modo="login">Iniciar sesión</button>
+      <button type="button" class="{{ 'on' if modo == 'registro' }}" data-auth-modo="registro">Crear cuenta</button>
+    </div>
+
+    <form method="post" action="{{ url_for('login') }}" id="formLogin" {{ 'hidden' if modo == 'registro' and rol_tab == 'comprador' }}>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="rol" id="loginRolInput" value="{{ rol_tab }}">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
+
+      <div class="auth-rol-banner {{ rol_tab }}" id="rolBanner">
+        {{ icono_ui('lock') }}
+        <span id="rolBannerTexto">
+          {% if rol_tab == 'vendedor' %}Acceso administrativo para gestión de ventas e inventario.
+          {% else %}Acceso de cliente para compras y seguimiento de pedidos.{% endif %}
+        </span>
+      </div>
+
+      <label class="campo">Usuario o correo electrónico
+        <input type="text" name="identificador" id="loginUser" value="{{ identificador or '' }}" placeholder="ej. comprador@mtcom1.mx" autocomplete="username" required>
+      </label>
+      <label class="campo">Contraseña
+        <input type="password" name="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" required>
+      </label>
+
+      <button class="btn primario bloque btn-con-ico" type="submit">
+        {{ icono_ui('lock') }}
+        <span id="loginBtnTexto">Entrar como {{ 'Vendedor' if rol_tab == 'vendedor' else 'Comprador' }}</span>
+      </button>
+    </form>
+
+    <form method="post" action="{{ url_for('registro') }}" id="formRegistro" {{ 'hidden' if not (modo == 'registro' and rol_tab == 'comprador') }}>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
+
+      <label class="campo">Nombre completo
+        <input type="text" name="nombre" maxlength="80" value="{{ nombre_reg or '' }}" placeholder="Ej. Sofía Ramírez" required>
+      </label>
+      <label class="campo">Correo o usuario
+        <input type="text" name="identificador" maxlength="80" value="{{ identificador if modo == 'registro' else '' }}" placeholder="ej. sofia@correo.com" autocomplete="username" required>
+      </label>
+      <label class="campo">Perfil de cliente (descuento automático)
+        <select name="perfil">
+          {% for clave, etiqueta in perfiles %}
+            <option value="{{ clave }}" {{ 'selected' if clave == (perfil_reg or 'General') }}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="campo">Contraseña (mín. 6 caracteres)
+        <input type="password" name="password" minlength="6" placeholder="Crea una contraseña" autocomplete="new-password" required>
+      </label>
+
+      <button class="btn primario bloque btn-con-ico" type="submit">
+        {{ icono_ui('user') }}
+        <span>Registrarme como Comprador</span>
+      </button>
+    </form>
+  </div>
+</section>
+{% endblock %}

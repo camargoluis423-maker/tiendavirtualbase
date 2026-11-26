@@ -1,0 +1,3 @@
+# Dependencias principales del proyecto
+Pillow>=10.0.0   # fotos en la app de escritorio
+Flask>=3.0       # solo para la versión web (web_app.py)

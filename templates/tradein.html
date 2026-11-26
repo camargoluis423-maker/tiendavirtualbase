@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block titulo %}Trade-in · Vende tu equipo{% endblock %}
+{% block contenido %}
+<div class="cab-pagina">
+  <div>
+    <span class="comp-kicker">Programa M&amp;T Renueva</span>
+    <h1 class="titulo">Trade-in: Vende o toma a cuenta tu equipo</h1>
+    <p class="suave">Calcula un crédito estimado por tu laptop, PC o tarjeta gráfica usada para tu próxima compra en sucursal.</p>
+  </div>
+</div>
+
+<div class="dos-col" style="margin-top:18px">
+  <form method="post" action="{{ url_for('trade_in') }}" class="panel reveal">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="campo">Tipo de equipo
+      <select name="tipo">
+        <option value="laptop">Laptop</option>
+        <option value="pc">PC de Escritorio</option>
+        <option value="gpu">Tarjeta Gráfica (GPU)</option>
+        <option value="smartphone">Smartphone</option>
+      </select>
+    </label>
+    <label class="campo">Antigüedad aproximada
+      <select name="antiguedad">
+        <option value="<1">Menos de 1 año</option>
+        <option value="1-2">1 a 2 años</option>
+        <option value="3-4">3 a 4 años</option>
+        <option value="5+">5 años o más</option>
+      </select>
+    </label>
+    <label class="campo">Estado físico y funcional
+      <select name="condicion">
+        <option value="nueva">Como nueva (sin golpes, caja/cargador)</option>
+        <option value="buena">Buen estado (uso normal, 100% funcional)</option>
+        <option value="detalles">Con detalles estéticos o batería gastada</option>
+      </select>
+    </label>
+    <label class="campo">Modelo o descripción breve
+      <input type="text" name="modelo" placeholder="Ej. Laptop HP Core i5 11va gen 8GB RAM">
+    </label>
+    <button type="submit" class="btn primario bloque">Calcular crédito estimado</button>
+  </form>
+
+  <section class="panel reveal">
+    <h2>Estimación de crédito</h2>
+    {% if not estimacion %}
+      <p class="suave">Completa los datos de tu equipo para obtener una valoración inmediata.</p>
+    {% else %}
+      <div class="pago-ref-box">
+        <span class="suave">Crédito estimado a favor</span>
+        <b class="pago-ref-codigo">{{ estimacion.credito|dinero }}</b>
+        <span class="suave">Folio de referencia: <b>{{ estimacion.folio }}</b></span>
+      </div>
+      <p class="suave">Presenta este folio junto con tu equipo en sucursal M&amp;T Tepeaca para revisión física y aplicación directa en tu compra.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono, icono_ui %}
+{% block titulo %}Catálogo{% endblock %}
+{% block contenido %}
+<section class="heroe">
+  <div class="heroe-aurora" aria-hidden="true"></div>
+  <div class="heroe-txt">
+    <span class="etiqueta">Tienda virtual · Tepeaca y región</span>
+    <h1>Tu equipo ideal, <em>listo para trabajar o jugar</em></h1>
+    <p>Computadoras, setups gamer y componentes seleccionados con descuento para estudiantes, ingenieros y empresas. Paga contra entrega o en modo prueba.</p>
+    <div class="heroe-ctas">
+      <a class="btn acento" href="#catalogo">Explorar catálogo</a>
+      <a class="btn fantasma" href="#tabla-componentes">Tabla de componentes &darr;</a>
+    </div>
+    <div class="heroe-kpis">
+      <div><b>{{ total_productos }}</b><span>Artículos en catálogo</span></div>
+      <div><b>{{ total_disponibles }}</b><span>Con envío / entrega hoy</span></div>
+      <div><b>Hasta 10%</b><span>Descuento por perfil</span></div>
+    </div>
+  </div>
+  <div class="heroe-sec">
+    {% for nombre, lema in SECCIONES.items() %}{% set est = estilo_cat(nombre) %}
+    <a class="sec-card" href="{{ url_for('index', cat=nombre) }}#catalogo" style="--c:{{ est.color }}">
+      {{ icono(nombre) }}
+      <div class="sec-card-info">
+        <b>{{ nombre }}</b>
+        <small>{{ lema }}</small>
+      </div>
+      <span class="sec-card-meta">{{ conteos_cat.get(nombre, 0) }} &rarr;</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<ul class="garantias" aria-label="Ventajas de comprar en M&T">
+  <li class="reveal" style="--delay:0ms">
+    <span class="gar-ico">{{ icono_ui('shield') }}</span>
+    <div><b>Compra Protegida</b><span>pago contra entrega o modo sandbox</span></div>
+  </li>
+  <li class="reveal" style="--delay:60ms">
+    <span class="gar-ico">{{ icono_ui('truck') }}</span>
+    <div><b>Envío rápido hoy</b><span>entrega local en Tepeaca y región</span></div>
+  </li>
+  <li class="reveal" style="--delay:120ms">
+    <span class="gar-ico">{{ icono_ui('tag') }}</span>
+    <div><b>Descuentos por perfil</b><span>Estudiante 10% · Empresa 8% · Ing. 5%</span></div>
+  </li>
+  <li class="reveal" style="--delay:180ms">
+    <span class="gar-ico">{{ icono_ui('bolt') }}</span>
+    <div><b>Stock en tiempo real</b><span>existencias verificadas al instante</span></div>
+  </li>
+</ul>
+
+{% if ofertas_relampago and cat == 'Todas' and not q %}
+<section class="flash-deals reveal" aria-label="Ofertas relámpago del día">
+  <div class="flash-deals-cab">
+    <div class="flash-deals-titulo">
+      <span class="deal-badge">&#9889; OFERTAS RELÁMPAGO</span>
+      <h2>Destacados de hoy con envío inmediato</h2>
+    </div>
+    <div class="deal-timer" aria-label="Tiempo restante de ofertas">
+      <span>Termina en</span>
+      <b id="dealCountdown">05:42:19</b>
+    </div>
+  </div>
+  <div class="flash-deals-track">
+    {% for op in ofertas_relampago %}
+    {% set est = estilo_cat(op.categoria) %}
+    {% set p_of = precio_oferta(op) %}
+    <a class="deal-card" href="{{ url_for('producto_detalle', pid=op.id) }}" style="--c:{{ est.color }}">
+      <div class="deal-img">
+        {% if op.foto %}
+          <img src="{{ url_for('foto', nombre=op.foto) }}" alt="{{ op.nombre }}" loading="lazy">
+        {% else %}
+          {{ icono(op.categoria) }}
+        {% endif %}
+        {% if op.get('descuento') %}
+          <span class="deal-off">&minus;{{ op.descuento|round|int }}% OFF</span>
+        {% else %}
+          <span class="deal-off">&minus;10% Est.</span>
+        {% endif %}
+      </div>
+      <div class="deal-info">
+        <span class="deal-cat">{{ op.categoria }}</span>
+        <b>{{ op.nombre }}</b>
+        <div class="deal-precio-row">
+          <div>
+            <span class="deal-precio">{{ p_of|dinero }}</span>
+            {% if op.get('descuento') %}<s class="deal-antes">{{ op.precio|dinero }}</s>{% endif %}
+          </div>
+          <span class="deal-envio">Envío hoy</span>
+        </div>
+        <div class="deal-stock-bar" aria-hidden="true">
+          <span style="width:{{ [92, 100 - op.stock * 5]|max }}%"></span>
+        </div>
+        <small class="deal-urg">{{ '¡Últimas ' ~ op.stock ~ ' uds!' if op.stock <= 3 else 'Alta demanda' }}</small>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if mas_codiciados and cat == 'Todas' and not q %}
+<section class="codiciados reveal" aria-label="Las ventas más codiciadas">
+  <div class="codiciados-cab">
+    <div>
+      <span class="cod-badge">&#127942; TOP VENTAS</span>
+      <h2>Las ventas más codiciadas</h2>
+    </div>
+    <span class="suave">Favoritos por desempeño, valoraciones y demanda en tienda</span>
+  </div>
+  <div class="codiciados-grid">
+    {% for mc in mas_codiciados %}
+    {% set p_mc = precio_oferta(mc) %}
+    <article class="cod-card">
+      <span class="cod-rank">#{{ loop.index }} Más codiciado</span>
+      <a class="cod-media" href="{{ url_for('producto_detalle', pid=mc.id) }}">
+        {% if mc.foto %}
+          <img src="{{ url_for('foto', nombre=mc.foto) }}" alt="{{ mc.nombre }}" loading="lazy">
+        {% else %}
+          {{ icono(mc.categoria) }}
+        {% endif %}
+      </a>
+      <div class="cod-body">
+        <span class="deal-cat">{{ mc.categoria }}</span>
+        <h3><a href="{{ url_for('producto_detalle', pid=mc.id) }}">{{ mc.nombre }}</a></h3>
+        <div class="prod-rating">
+          <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          <b>4.9</b>
+          {% if conteo_vendidos.get(mc.id) %}
+            <span class="envio-pill">{{ conteo_vendidos[mc.id] }} vendidos</span>
+          {% else %}
+            <span class="envio-pill">Top elección</span>
+          {% endif %}
+        </div>
+        <div class="cod-foot">
+          <div>
+            <b class="cod-precio">{{ p_mc|dinero }}</b>
+            {% if mc.get('descuento') %}<s class="deal-antes">{{ mc.precio|dinero }}</s>{% endif %}
+          </div>
+          <a class="btn mini primario" href="{{ url_for('producto_detalle', pid=mc.id) }}">Ver</a>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<form class="filtros" id="catalogo" method="get" action="{{ url_for('index') }}#catalogo">
+  <div class="chips-grupo">
+    {% for c in categorias %}
+      <a class="chip {{ 'on' if c == cat }}" href="{{ url_for('index', cat=c, q=q or None, orden=orden if orden != 'destacados' else None) }}#catalogo">
+        <span>{{ c }}</span>
+        <span class="chip-num">{{ conteos_cat.get(c, 0) }}</span>
+      </a>
+    {% endfor %}
+  </div>
+  <input type="hidden" name="cat" value="{{ cat }}">
+  <div class="buscar">
+    <select name="orden" aria-label="Ordenar productos" onchange="this.form.submit()">
+      <option value="destacados" {{ 'selected' if orden == 'destacados' }}>Orden: Destacados</option>
+      <option value="precio_asc" {{ 'selected' if orden == 'precio_asc' }}>Menor precio</option>
+      <option value="precio_desc" {{ 'selected' if orden == 'precio_desc' }}>Mayor precio</option>
+      <option value="stock_desc" {{ 'selected' if orden == 'stock_desc' }}>Mayor disponibilidad</option>
+      <option value="nombre" {{ 'selected' if orden == 'nombre' }}>Nombre (A–Z)</option>
+    </select>
+    <div class="buscar-input">
+      {{ icono_ui('search') }}
+      <input type="search" name="q" placeholder="Buscar equipo, RTX, DDR5…" value="{{ q }}" aria-label="Buscar producto">
+    </div>
+    <button class="btn primario">Buscar</button>
+    {% if q or cat != 'Todas' or orden != 'destacados' %}
+      <a class="btn" href="{{ url_for('index') }}#catalogo">Limpiar</a>
+    {% endif %}
+  </div>
+</form>
+
+{% if secciones %}
+  {% for nombre, lema, lista in secciones %}{% set est = estilo_cat(nombre) %}
+  <section class="seccion" style="--c:{{ est.color }}" id="sec-{{ nombre|lower|replace(' ', '-') }}">
+    <header class="sec-cab reveal">
+      <span class="sec-ico">{{ icono(nombre) }}</span>
+      <div>
+        <h2>{{ nombre }}</h2>
+        <p>{{ lema }}</p>
+      </div>
+      {% if nombre == 'Componentes' %}
+        <div class="vista-switch" role="group" aria-label="Modo de visualización de componentes">
+          <button type="button" class="on" data-comp-view="both">{{ icono_ui('table') }}<span>Tabla + Tarjetas</span></button>
+          <button type="button" data-comp-view="table">{{ icono_ui('table') }}<span>Solo tabla</span></button>
+          <button type="button" data-comp-view="cards">{{ icono_ui('grid') }}<span>Solo tarjetas</span></button>
+        </div>
+      {% endif %}
+      {% if nombre in SECCIONES %}
+        <a class="ver-todo" href="{{ url_for('index', cat=nombre) }}#catalogo">Ver todo ({{ lista|length }}) &rarr;</a>
+      {% endif %}
+    </header>
+
+    {% if nombre == 'Componentes' %}
+      <div id="componentes-tabla-wrap">{% include "_tabla_componentes.html" %}</div>
+      <div id="componentes-tarjetas" class="rejilla">
+        {% for p in lista %}{% include "_tarjeta.html" %}
+        {% else %}<div class="vacio"><b>&empty;</b>Pronto agregaremos productos aquí.</div>{% endfor %}
+      </div>
+    {% else %}
+      <div class="rejilla">
+        {% for p in lista %}{% include "_tarjeta.html" %}
+        {% else %}<div class="vacio"><b>&empty;</b>Pronto agregaremos productos aquí.</div>{% endfor %}
+      </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+{% else %}
+  <div class="resultados-barra">
+    <p class="suave"><b>{{ productos|length }}</b> producto(s){% if cat != 'Todas' %} en <b>{{ cat }}</b>{% endif %}{% if q %} para «<b>{{ q }}</b>»{% endif %}</p>
+    {% if cat == 'Componentes' %}
+      <div class="vista-switch" role="group" aria-label="Modo de visualización de componentes">
+        <button type="button" class="on" data-comp-view="both">{{ icono_ui('table') }}<span>Tabla + Tarjetas</span></button>
+        <button type="button" data-comp-view="table">{{ icono_ui('table') }}<span>Solo tabla</span></button>
+        <button type="button" data-comp-view="cards">{{ icono_ui('grid') }}<span>Solo tarjetas</span></button>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if cat == 'Componentes' %}
+    <div id="componentes-tabla-wrap">{% include "_tabla_componentes.html" %}</div>
+    <div id="componentes-tarjetas" class="rejilla">
+      {% for p in productos %}{% include "_tarjeta.html" %}
+      {% else %}<div class="vacio"><b>&empty;</b>No hay componentes con ese filtro.<br><br><a class="btn primario" href="{{ url_for('index') }}">Ver todo el catálogo</a></div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="rejilla">
+      {% for p in productos %}{% include "_tarjeta.html" %}
+      {% else %}<div class="vacio"><b>&empty;</b>No hay productos con ese filtro.<br><br><a class="btn primario" href="{{ url_for('index') }}">Ver todo el catálogo</a></div>
+      {% endfor %}
+    </div>
+    {% if cat == 'Todas' and not q and componentes_tabla %}
+      {% include "_tabla_componentes.html" %}
+    {% endif %}
+  {% endif %}
+{% endif %}
+{% endblock %}
